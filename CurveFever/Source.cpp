@@ -6,19 +6,24 @@
 
 #define PI std::acos(0) * 2
 sf::Vector2u screenSize(800, 800);
+using std::cout; using std::endl;
 
+/*
+	A linked list that holds pointers to all the lines player creates
+*/
 struct Node {
 	sf::VertexArray* value;
 	Node* next = 0;
 	Node(sf::VertexArray* v) : value(v) {};
 	~Node() {
-		std::cout << "deleted";
+		cout << "deleted";
 	}
 };
 
 struct LinkedList {
 	Node* head = 0;
 	int length = 0;
+	// add item to back of the list
 	void push_back(sf::VertexArray* v) {
 		Node* newVal = new Node(v);
 		length++;
@@ -32,6 +37,7 @@ struct LinkedList {
 			temp->next = newVal;
 		}
 	}
+	// select value of node by index
 	sf::VertexArray* at(int index) {
 		if (!head) {
 			std::cout << "The list is empty" << std::endl;
@@ -49,11 +55,16 @@ struct LinkedList {
 			}
 			n++;
 		}
-		return temp->value;
+		if (temp) {
+			return temp->value;
+		}
+		return head->value;
 	};
+	// select value of node by index
 	sf::VertexArray* operator [](int index) {
 		return at(index);
 	}
+	// empty the list in memory safe way
 	void clear() {
 		length = 0;
 		if (head == 0) {
@@ -76,6 +87,8 @@ struct LinkedList {
 	};
 };
 
+// A physics style vector used to mimic velocity and bend angle.
+// To be replaced with matrix implementation
 class Vector {
 	float length{};
 	float angle{};
@@ -86,80 +99,136 @@ public:
 	}
 };
 
+// 
 class Player {
+	bool placesPath = true;
+	int lineIndex = 0;
+	LinkedList* linesArray;
+	
 	sf::Vector2f position;
-	bool placesPath;
 	sf::Vector2f starting;
 	int size;
+
 public:
-	Player(sf::Vector2f p) : position(p), starting(p) {
+	friend class MyRenderWindow;
+	Player(sf::Vector2f p, LinkedList& la, int s = 2) : position(p), starting(p) {
+		size = s;
 		placesPath = true;
-		size = sqrt(2) / 2;
+		linesArray = &la;
+		
+		initiateLine();
+		//restart();
 	};
+
+	void initiateLine() {
+		lineIndex++;
+		cout << lineIndex << endl;
+		sf::VertexArray* currentLine = new sf::VertexArray;
+		currentLine->setPrimitiveType(sf::TrianglesStrip);
+		linesArray->push_back(currentLine);
+	}
+
+	void createPathFrom(sf::Vector2f previous) {
+		// TODO: Apply inverse matrix to the board so that it doesnt have to be -
+	}
+
+	// Get current position on the map
 	sf::Vector2f getPosition() {
 		return position;
 	}
+	// Get starting position
 	sf::Vector2f getStarting() {
 		return starting;
 	}
+	void applyDisplacement(float distance, float angle) {
+		position += {distance* std::cos(angle), distance* std::sin(angle)};
+	}
+
+	// Move player by vector
 	void applyDisplacement(Vector v) {
 		position += v.getDisplacement();
 	}
-
+	// Set whether player places path
 	void setPlacesPath(bool v) {
 		placesPath = v;
 	};
+	// Get whether player places path
 	bool getPlacesPath() {
 		return placesPath;
 	};
+	// restart game
 	void restart() {
 		position = starting;
 		placesPath = true;
+		linesArray->clear();
+		lineIndex = 0;
+		initiateLine();
 	}
+	// Get size of player
 	int getSize() {
 		return size;
 	}
+	// Set size of player
 	void setSize(int n) {
 		size = n;
 	}
+	int getLineIndex() {
+		return lineIndex;
+	}
 };
 
-bool checkForCollision(Player player, sf::VertexArray line) {
-	sf::Vector2f position = player.getPosition();
-	int radius = player.getSize();
-	/*get nearest point to the player*/
-	return true;
-}
+class MyRenderWindow : public sf::RenderWindow {
+public:
+	MyRenderWindow(sf::VideoMode v, std::string title) : sf::RenderWindow(v, title) {}
+	void draw(Player p) {
+		sf::CircleShape playerDot;
+		playerDot = sf::CircleShape(p.size, 10);
+		playerDot.setOrigin(p.size, p.size);
+		playerDot.setPosition(p.getPosition());
+		sf::RenderWindow::draw(playerDot);
+		LinkedList* l = p.linesArray;
+		for (int i{}; i < p.lineIndex; i++) {
+			sf::RenderWindow::draw(*l->at(i));
+		}
+
+		//Vector forShow(40, angleFromPreviousPoint + PI / 2);
+		//sf::Vertex show[] = { p.position, p.position + forShow.getDisplacement() };
+		//sf::RenderWindow::draw(show, 2, sf::LinesStrip);
+	}
+};
+
+/*
+	TODO:
+	move angle to player
+	find a way to move this fucking linkedlist within player in memory safe way ffs
+	texture/color of lines
+	initially local multiplayer, then game server
+	collision detection
+*/
 
 int main() {
-	sf::RenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML");
-	//sf::Font font;
-	//if (!font.loadFromFile("Arial.ttf"))
-	//{
-	//	return 0;
-	//}
-	Player p1({400, 400});
-	float t{};
-	float d{};
-	float test = 2;
-	
-	sf::VertexArray* k = new sf::VertexArray;
-	k->setPrimitiveType(sf::TrianglesStrip);
-
-	LinkedList arr;
-	arr.push_back(k);
-
-	sf::Clock c;
-	float elapsed = 0;
+	// initiate window and globally used values
+	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML");
 	window.setFramerateLimit(60);
-	sf::Vector2f previous = p1.getPosition();
-	sf::Vector2f currentPosition;
-	sf::Vector2f testv = { 2, 2 };
+	float currentTick{};
+	float currentAngle{};
+	
+	// initiate game clock
+	sf::Clock clock;
+	float elapsed = 0;
 
+	// initiate player and all that has to do with them
+	// doing linesArray stuff directly within player object breaks everything ; . ;
+	LinkedList linesArray;
+	Player player({400, 400}, linesArray);
+	sf::Vector2f previous = player.getPosition();
+	sf::Vector2f currentPosition;
+
+	//initiate keymap (used to negate keyboard input lag)
 	std::map<std::string, bool> keymap;
-	int line_index = 1;
+	
 	while (window.isOpen()) {
-		c.restart();
+		clock.restart();
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			switch (event.type) {
@@ -167,10 +236,13 @@ int main() {
 				window.close();
 			}
 			case(sf::Event::MouseButtonPressed): {
+				// pause on button press
 				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
+				clock.restart();
 				break;
 			}
 			case(sf::Event::KeyPressed): {
+				// update keymap
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
 					keymap["A"] = true;
 				};
@@ -178,28 +250,22 @@ int main() {
 					keymap["D"] = true;
 				};
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-					p1.setPlacesPath(false);
+					keymap["SPACE"] = true;
 				}
+				// restart the game
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-					p1.restart();
-					d = 0;
-					t = 0;
-					line_index = 1;
-					arr.clear();
-					sf::VertexArray* o = new sf::VertexArray;
-					o->setPrimitiveType(sf::TrianglesStrip);
-					arr.push_back(o);
-					previous = p1.getStarting();
+					player.restart();
+					currentAngle = 0;
+					currentTick = 0;
+					previous = player.getStarting();
 				}
 				break;
 			};
 			case(sf::Event::KeyReleased): {
 				if (event.key.code == sf::Keyboard::Space) {
-					sf::VertexArray* o = new sf::VertexArray;
-					o->setPrimitiveType(sf::TrianglesStrip);
-					arr.push_back(o);
-					line_index++;
-					p1.setPlacesPath(true);
+					// when space back up create new line
+					player.initiateLine();
+					keymap["SPACE"] = false;
 				}
 				if (event.key.code == sf::Keyboard::A) {
 					keymap["A"] = false;
@@ -211,47 +277,45 @@ int main() {
 			}
 			}
 		}
+		elapsed = clock.getElapsedTime().asMicroseconds();
+		
+		// handle keys after they are set for clarity sake
 		if (keymap["A"]) {
-			d -= 0.1 + (0.0001 * elapsed);
+			currentAngle -= 0.1 + (0.0001 * elapsed);
 		}
 		if (keymap["D"]) {
-			d += 0.1 + (0.0001 * elapsed);
+			currentAngle += 0.1 + (0.0001 * elapsed);
 		}
+		player.setPlacesPath(!keymap["SPACE"]);
 
-		elapsed = c.getElapsedTime().asMicroseconds();
-		Vector displacement(5, d);
-		p1.applyDisplacement(displacement);
-		sf::CircleShape l(2, 40);
-		l.setOrigin(2, 2);
-		
-		currentPosition = p1.getPosition();
+		// Move player
+		Vector displacement(5, currentAngle);
+		player.applyDisplacement(displacement);
+
+		// Do not touch without a commit. Memory safe, but very fragile;
+		currentPosition = player.getPosition();
 		float angleFromPreviousPoint = - atan2f(previous.x - currentPosition.x, previous.y - currentPosition.y);
-		
-		l.setPosition(p1.getPosition());
-		Vector c1(4, angleFromPreviousPoint + 7 * PI / 6);
-		Vector c2(4, angleFromPreviousPoint - 1 * PI / 6);
-		Vector c3(4, angleFromPreviousPoint + 7 * PI / 6);
-		Vector c4(4, angleFromPreviousPoint - 1 * PI / 6);
-
-		Vector forShow(40, angleFromPreviousPoint + PI / 2);
-		sf::Vertex show[] = { currentPosition, currentPosition + forShow.getDisplacement() };
-
-		if (p1.getPlacesPath()) {
-			arr[line_index]->append(sf::Vertex(previous + c1.getDisplacement()));
-			arr[line_index]->append(sf::Vertex(previous + c2.getDisplacement()));
-			arr[line_index]->append(sf::Vertex(currentPosition + c3.getDisplacement()));
-			arr[line_index]->append(sf::Vertex(currentPosition + c4.getDisplacement()));
+		int lineIndex = player.getLineIndex();
+		if (player.getPlacesPath()) {
+			Vector c1(4, angleFromPreviousPoint + 7 * PI / 6);
+			Vector c2(4, angleFromPreviousPoint - 1 * PI / 6);
+			Vector c3(4, angleFromPreviousPoint + 7 * PI / 6);
+			Vector c4(4, angleFromPreviousPoint - 1 * PI / 6);
+			linesArray[lineIndex]->append(sf::Vertex(previous + c1.getDisplacement()));
+			linesArray[lineIndex]->append(sf::Vertex(previous + c2.getDisplacement()));
+			linesArray[lineIndex]->append(sf::Vertex(currentPosition + c3.getDisplacement()));
+			linesArray[lineIndex]->append(sf::Vertex(currentPosition + c2.getDisplacement()));
 		}
 
 		previous = currentPosition;
+
+		//draw stuff
 		window.clear();
-		for (int i{}; i < line_index; i++) {
-			window.draw(*arr[i]);
-		}
-		window.draw(l);
-		window.draw(show, 2, sf::LinesStrip);
+		window.draw(player);
 		window.display();
-		t = t + 5 * elapsed;
+		// increment game tick by a value modified by time between frames
+		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+		currentTick = currentTick + 5 * elapsed;
 	}
 	return 0;
 }
