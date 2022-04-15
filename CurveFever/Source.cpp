@@ -179,7 +179,7 @@ public:
 
 class MyRenderWindow : public sf::RenderWindow {
 public:
-	MyRenderWindow(sf::VideoMode v, std::string title) : sf::RenderWindow(v, title) {}
+	MyRenderWindow(sf::VideoMode v, std::string title, sf::ContextSettings c) : sf::RenderWindow(v, title, sf::Style::Close, c) {}
 	void draw(Player p) {
 		sf::CircleShape playerDot;
 		playerDot = sf::CircleShape(p.size, 10);
@@ -190,11 +190,14 @@ public:
 		for (int i{}; i < p.lineIndex; i++) {
 			sf::RenderWindow::draw(*l->at(i));
 		}
+	}
+		void draw(sf::Shape& s) {
+			sf::RenderWindow::draw(s);
+		}
 
 		//Vector forShow(40, angleFromPreviousPoint + PI / 2);
 		//sf::Vertex show[] = { p.position, p.position + forShow.getDisplacement() };
 		//sf::RenderWindow::draw(show, 2, sf::LinesStrip);
-	}
 };
 
 /*
@@ -206,9 +209,60 @@ public:
 	collision detection
 */
 
+class Tilemap {
+	int** tileMap = 0;
+	int width, height;
+public:
+	Tilemap(int w, int h) {
+		width = w; height = h;
+		init();
+	}
+	void init() {
+		if (tileMap) {
+			for (int i{}; i < width; i++) {
+				delete[] tileMap[i];
+			}
+			delete[] tileMap;
+		}
+		int** outer = new int* [width];
+		for (int i{}; i < width; i++) {
+			outer[i] = new int[height]{};
+		}
+		tileMap = outer;
+	}
+	void setAt(int i, int j, int val) {
+		tileMap[i][j] = val;
+	}
+	int getAt(int i, int j) {
+		return tileMap[i][j];
+	}
+};
+
+int** getMatrixTransform(float angle) {
+	float sin = std::sin(angle);
+	float cos = std::cos(angle);
+	int** matrix = new int* [2];
+	for (int i{}; i < 2; i++) {
+		matrix[i] = new int[2];
+	}
+	matrix[0][0] = cos;
+	matrix[0][1] = -sin;
+	matrix[1][0] = sin;
+	matrix[1][1] = cos;
+	return matrix;
+}
+
+
+sf::Vector2f mmul (int** m, sf::Vector2f v) {
+	return {v.x * m[0][0] + v.y * m[0][1], v.x * m[1][0] + v.y * m[1][1]};
+}
+
+
 int main() {
 	// initiate window and globally used values
-	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML");
+	sf::ContextSettings settings;
+	settings.antialiasingLevel = 4.0;
+	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
 	window.setFramerateLimit(60);
 	float currentTick{};
 	float currentAngle{};
@@ -220,15 +274,22 @@ int main() {
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
 	LinkedList linesArray;
-	Player player({400, 400}, linesArray);
+	Player player({400, 400}, linesArray); //starting position, lines
 	sf::Vector2f previous = player.getPosition();
 	sf::Vector2f currentPosition;
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<std::string, bool> keymap;
+
+	const int buffer = 5;
+	const int screenWidth = screenSize.x;
+	const int screenHeight = screenSize.y;
 	
+	Tilemap tilemap(screenWidth + 2 * buffer, screenHeight + 2 * buffer);
+
+
+
 	while (window.isOpen()) {
-		clock.restart();
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			switch (event.type) {
@@ -277,14 +338,14 @@ int main() {
 			}
 			}
 		}
-		elapsed = clock.getElapsedTime().asMicroseconds();
-		
+		elapsed = clock.restart().asMicroseconds();
+
 		// handle keys after they are set for clarity sake
 		if (keymap["A"]) {
-			currentAngle -= 0.1 + (0.0001 * elapsed);
+			currentAngle -= (0.00001 * elapsed);
 		}
 		if (keymap["D"]) {
-			currentAngle += 0.1 + (0.0001 * elapsed);
+			currentAngle += (0.00001 * elapsed);
 		}
 		player.setPlacesPath(!keymap["SPACE"]);
 
@@ -294,24 +355,141 @@ int main() {
 
 		// Do not touch without a commit. Memory safe, but very fragile;
 		currentPosition = player.getPosition();
-		float angleFromPreviousPoint = - atan2f(previous.x - currentPosition.x, previous.y - currentPosition.y);
+		float angleFromPreviousPoint = -atan2f(previous.x - currentPosition.x, previous.y - currentPosition.y);
 		int lineIndex = player.getLineIndex();
+		std::cout << currentPosition.x << std::endl;
+
+		//check for collision with screen border
+		if (currentPosition.x + buffer > screenHeight ||
+			currentPosition.x - buffer < 0 ||
+			currentPosition.y + buffer > screenWidth ||
+			currentPosition.y - buffer < 0
+			) 
+		{
+			player.restart();
+			currentAngle = 0;
+			currentTick = 0;
+			tilemap.init();
+			previous = player.getStarting();
+			continue;
+		}
+
+		//check for collision with path
+		sf::Vector2i currentCoords(currentPosition);
+		sf::RectangleShape s({ (float)player.getSize() * 2.0f, 10 });
+		s.setOrigin({ player.getSize() / 2.0f }, 5);
+		s.setPosition({ (float)currentCoords.x, 0 });
+
+		bool toBeTerminated = false;
+		for (int i = currentCoords.x - player.getSize() * 4; i < currentCoords.x + player.getSize() * 4; i++) {
+			for (int j = currentCoords.y - player.getSize() * 4; j < currentCoords.y + player.getSize() * 4; j++) {
+				if (tilemap.getAt(i, j) == 1) {
+					//check distance from center is lower than player radius
+					double distance = std::sqrt(std::pow(i - currentCoords.x, 2) + std::pow(j - currentCoords.y, 2));
+					if (distance < player.getSize()) {
+						std::cout << "JEBAC JAK PLATFORMA NIE JEBALA" << std::endl;
+						toBeTerminated = true;
+						break;
+					}
+
+				}
+			}
+			if (toBeTerminated)
+				break;
+		}
+		if (toBeTerminated) {
+			player.restart();
+			currentAngle = 0;
+			currentTick = 0;
+			tilemap.init();
+			previous = player.getStarting();
+			continue;
+		}
 		if (player.getPlacesPath()) {
-			Vector c1(4, angleFromPreviousPoint + 7 * PI / 6);
-			Vector c2(4, angleFromPreviousPoint - 1 * PI / 6);
-			Vector c3(4, angleFromPreviousPoint + 7 * PI / 6);
-			Vector c4(4, angleFromPreviousPoint - 1 * PI / 6);
-			linesArray[lineIndex]->append(sf::Vertex(previous + c1.getDisplacement()));
-			linesArray[lineIndex]->append(sf::Vertex(previous + c2.getDisplacement()));
-			linesArray[lineIndex]->append(sf::Vertex(currentPosition + c3.getDisplacement()));
-			linesArray[lineIndex]->append(sf::Vertex(currentPosition + c2.getDisplacement()));
+			
+			
+			
+			
+			Vector c1(player.getSize(), angleFromPreviousPoint + 7 * PI / 6);
+			Vector c2(player.getSize(), angleFromPreviousPoint - 1 * PI / 6);
+			Vector c3(player.getSize(), angleFromPreviousPoint + 7 * PI / 6);
+			Vector c4(player.getSize(), angleFromPreviousPoint - 1 * PI / 6);
+
+
+			sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement());
+			sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement());
+			sf::Vertex v3 = sf::Vertex(currentPosition + c3.getDisplacement());
+			sf::Vertex v4 = sf::Vertex(currentPosition + c4.getDisplacement());
+
+
+			/*
+				Now that I know how triangle strip works...
+			*/
+			//Vector c1(4, angleFromPreviousPoint + 7 * PI / 6);
+			//Vector c2(4, angleFromPreviousPoint - 1 * PI / 6);
+			//sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement());
+			//sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement());
+			
+			//linesArray[lineIndex]->append(v1);
+			//linesArray[lineIndex]->append(v2);
+			linesArray[lineIndex]->append(v3);
+			linesArray[lineIndex]->append(v4);
+			
+			int x1 = (int)v3.position.x;
+			int x2 = (int)v4.position.x;
+			int y1 = (int)v3.position.y;
+			int y2 = (int)v4.position.y;
+
+			int maxx = x1 > x2 ? x1 : x2;
+			int minx = x1 < x2 ? x1 : x2;
+
+			int maxy = y1 > y2 ? y1 : y2;
+			int miny = y1 < y2 ? y1 : y2;
+			
+			//for (int i = minx; i <= maxx; i++) {
+			//	for (int j = miny; j <= maxy; j++) {
+			//		tilemap.setAt(i, j, 1);
+			//	}
+			//}
+
+
+			
+			
+			tilemap.setAt((int)v3.position.x, (int)v3.position.y, 1);
+			tilemap.setAt((int)v4.position.x, (int)v4.position.y, 1);
+
+			
+
 		}
 
 		previous = currentPosition;
 
 		//draw stuff
 		window.clear();
+		window.draw(s);
 		window.draw(player);
+
+
+		/*
+		
+		sf::CircleShape distanceIndicator(player.getSize() * 2, 5);
+		distanceIndicator.setFillColor(sf::Color::Magenta);
+		distanceIndicator.setOrigin(player.getSize() * 2, player.getSize() * 2);
+		distanceIndicator.setPosition(currentPosition);
+		window.draw(distanceIndicator); 
+		for (int i{}; i < screenWidth; i++) {
+		for (int j{}; j < screenHeight; j++) {
+		if (tilemap.getAt(i, j) == 1) {
+		sf::CircleShape s(2, 4);
+		s.setFillColor(sf::Color::Red);
+		s.setPosition(i, j);
+		window.draw(s);
+		}
+		}
+		}
+		*/
+		
+		
 		window.display();
 		// increment game tick by a value modified by time between frames
 		// this is supposed to make gameplay independent of frames per second and ping in the fututre

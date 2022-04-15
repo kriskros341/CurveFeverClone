@@ -2,11 +2,20 @@
 C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(185,32): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
 C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(186,32): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
 C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(186,24): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(273,50): warning C4244: '=': conversion from 'sf::Int64' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(277,44): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(280,44): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(293,40): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(294,40): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(295,40): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(296,40): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(248,17): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(249,17): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(250,17): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(251,17): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(264,31): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(341,43): warning C4244: '=': conversion from 'sf::Int64' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(345,39): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(348,39): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(413,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(413,28): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(414,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(414,28): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(415,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(415,28): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(416,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(416,28): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
   CurveFever.vcxproj -> C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\x64\Debug\CurveFever.exe
