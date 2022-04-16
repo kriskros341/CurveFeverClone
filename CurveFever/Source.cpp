@@ -11,26 +11,35 @@ using std::cout; using std::endl;
 /*
 	A linked list that holds pointers to all the lines player creates
 */
+
+
+template <typename T>
 struct Node {
-	sf::VertexArray* value;
+	T value;
 	Node* next = 0;
-	Node(sf::VertexArray* v) : value(v) {};
+	Node(T v) : value(v) {};
 	~Node() {
 		cout << "deleted";
 	}
 };
 
-struct LinkedList {
-	Node* head = 0;
+
+template <typename T>
+struct LinkedListDynamic {
+	Node<T*>* head = 0;
+
+	//NOT IMPL
+	Node<T*>* tail = 0;
+	
 	int length = 0;
 	// add item to back of the list
-	void push_back(sf::VertexArray* v) {
-		Node* newVal = new Node(v);
+	void push_back(T* v) {
+		Node<T*>* newVal = new Node<T*>(v);
 		length++;
 		if (!head)
 			head = newVal;
 		else {
-			Node* temp = head;
+			Node<T*>* temp = head;
 			while (temp->next) {
 				temp = temp->next;
 			}
@@ -38,17 +47,15 @@ struct LinkedList {
 		}
 	}
 	// select value of node by index
-	sf::VertexArray* at(int index) {
+	T* at(int index) {
 		if (!head) {
 			std::cout << "The list is empty" << std::endl;
-			raise(SIGILL);
 		}
 		if (index > length) {
 			std::cout << "No such item in list" << std::endl;
-			raise(SIGILL);
 		}
 		int n = 0;
-		Node* temp = head;
+		Node<T*>* temp = head;
 		while (n != index) {
 			if (temp->next) {
 				temp = temp->next;
@@ -61,31 +68,35 @@ struct LinkedList {
 		return head->value;
 	};
 	// select value of node by index
-	sf::VertexArray* operator [](int index) {
+	T* operator [](int index) {
 		return at(index);
 	}
+
 	// empty the list in memory safe way
 	void clear() {
 		length = 0;
 		if (head == 0) {
 			return;
 		}
-		Node* temp1 = head;
-		Node* temp2 = 0;
+		Node<T*>* temp1 = head;
+		Node<T*>* temp2 = 0;
 		while (temp1->next) {
 			temp2 = temp1;
 			temp1 = temp2->next;
+			delete temp2->value;
 			delete temp2;
 		}
+		delete temp1->value;
 		delete temp1;
 		//delete head;
 		head = 0;
 		//delete temp1;
 	}
-	~LinkedList() {
+	~LinkedListDynamic() {
 		clear();
 	};
 };
+
 
 // A physics style vector used to mimic velocity and bend angle.
 // To be replaced with matrix implementation
@@ -103,7 +114,7 @@ public:
 class Player {
 	bool placesPath = true;
 	int lineIndex = 0;
-	LinkedList* linesArray;
+	LinkedListDynamic<sf::VertexArray>* linesArray;
 	
 	sf::Vector2f position;
 	sf::Vector2f starting;
@@ -111,7 +122,7 @@ class Player {
 
 public:
 	friend class MyRenderWindow;
-	Player(sf::Vector2f p, LinkedList& la, int s = 2) : position(p), starting(p) {
+	Player(sf::Vector2f p, LinkedListDynamic<sf::VertexArray>& la, int s = 2) : position(p), starting(p) {
 		size = s;
 		placesPath = true;
 		linesArray = &la;
@@ -186,13 +197,16 @@ public:
 		playerDot.setOrigin(p.size, p.size);
 		playerDot.setPosition(p.getPosition());
 		sf::RenderWindow::draw(playerDot);
-		LinkedList* l = p.linesArray;
+		LinkedListDynamic<sf::VertexArray>* l = p.linesArray;
 		for (int i{}; i < p.lineIndex; i++) {
 			sf::RenderWindow::draw(*l->at(i));
 		}
 	}
 		void draw(sf::Shape& s) {
 			sf::RenderWindow::draw(s);
+		}
+		void draw(sf::VertexArray& v) {
+			sf::RenderWindow::draw(v);
 		}
 
 		//Vector forShow(40, angleFromPreviousPoint + PI / 2);
@@ -238,12 +252,12 @@ public:
 	}
 };
 
-int** getMatrixTransform(float angle) {
+float** getMatrixRotate(float angle) {
 	float sin = std::sin(angle);
 	float cos = std::cos(angle);
-	int** matrix = new int* [2];
+	float** matrix = new float* [2];
 	for (int i{}; i < 2; i++) {
-		matrix[i] = new int[2];
+		matrix[i] = new float[2];
 	}
 	matrix[0][0] = cos;
 	matrix[0][1] = -sin;
@@ -252,12 +266,36 @@ int** getMatrixTransform(float angle) {
 	return matrix;
 }
 
+sf::Vector2f midpoint(sf::Vector2f v1, sf::Vector2f v2) {
+	return (v1 + v2) / 2.0f;
+}
 
-sf::Vector2f mmul (int** m, sf::Vector2f v) {
+sf::Vector2f mmul (float** m, sf::Vector2f v) {
 	return {v.x * m[0][0] + v.y * m[0][1], v.x * m[1][0] + v.y * m[1][1]};
 }
 
+float** transpose(float** m) {
+	float** n = new float*[2];
+	n[0] = new float[2]{ m[0][0], m[1][0] };
+	n[1] = new float[2]{ m[0][1], m[1][1] };
+	return n;
+}
 
+
+float distance(sf::Vector2f a, sf::Vector2f b) {
+	return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
+}
+
+void printv(sf::Vector2f v) {
+	std::cout << v.x << " " << v.y << std::endl;
+}
+
+// On linked list vs pointer
+// https://fylux.github.io/2017/06/29/list_vs_vector/
+// Linked lists much worse for small objects
+// find better on vector, insert delete on list for front/back
+
+//switch both list of vertices and list of POI to vectors (sf::Vertex and std::pair<float, float>
 int main() {
 	// initiate window and globally used values
 	sf::ContextSettings settings;
@@ -273,7 +311,7 @@ int main() {
 
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
-	LinkedList linesArray;
+	LinkedListDynamic<sf::VertexArray> linesArray;
 	Player player({400, 400}, linesArray); //starting position, lines
 	sf::Vector2f previous = player.getPosition();
 	sf::Vector2f currentPosition;
@@ -286,8 +324,52 @@ int main() {
 	const int screenHeight = screenSize.y;
 	
 	Tilemap tilemap(screenWidth + 2 * buffer, screenHeight + 2 * buffer);
+	sf::VertexArray* arrow = new sf::VertexArray;
+	player.setSize(10);
 
+	std::vector<sf::Vector2f> POIq;
 
+	//Make it all into a  game object
+	auto restart = [&]() {
+		player.restart();
+		currentAngle = 0;
+		currentTick = 0;
+		tilemap.init();
+		POIq.clear();
+		previous = player.getStarting();
+	};
+
+	float angleFromPreviousPoint{};
+
+	auto debug = [&]() {
+		arrow->clear();
+		sf::Vertex v1(currentPosition);
+		float** g = getMatrixRotate(angleFromPreviousPoint - PI/2);
+		sf::Vertex v2(currentPosition + mmul(g, sf::Vector2f(40, 0)));
+		arrow->append(v1);
+		arrow->append(v2);
+		delete[] g[0];
+		delete[] g[1];
+		delete[] g;
+
+		sf::CircleShape distanceIndicator(player.getSize() * 2, 5);
+		distanceIndicator.setFillColor(sf::Color::Magenta);
+		distanceIndicator.setOrigin(player.getSize() * 2, player.getSize() * 2);
+		distanceIndicator.setPosition(currentPosition);
+		window.draw(distanceIndicator);
+		for (int i{}; i < screenWidth; i++) {
+			for (int j{}; j < screenHeight; j++) {
+				if (tilemap.getAt(i, j) == 1) {
+					sf::CircleShape s(2, 4);
+					s.setFillColor(sf::Color::Red);
+					s.setPosition(i, j);
+					window.draw(s);
+				}
+			}
+		}
+	};
+
+	bool doDebug = false;
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -309,6 +391,9 @@ int main() {
 				};
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
 					keymap["D"] = true;
+				};
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
+					keymap["B"] = true;
 				};
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 					keymap["SPACE"] = true;
@@ -334,6 +419,9 @@ int main() {
 				if (event.key.code == sf::Keyboard::D) {
 					keymap["D"] = false;
 				}
+				if (event.key.code == sf::Keyboard::B) {
+					keymap["B"] = false;
+				}
 				break;
 			}
 			}
@@ -347,6 +435,7 @@ int main() {
 		if (keymap["D"]) {
 			currentAngle += (0.00001 * elapsed);
 		}
+		doDebug = keymap["B"];
 		player.setPlacesPath(!keymap["SPACE"]);
 
 		// Move player
@@ -355,34 +444,26 @@ int main() {
 
 		// Do not touch without a commit. Memory safe, but very fragile;
 		currentPosition = player.getPosition();
-		float angleFromPreviousPoint = -atan2f(previous.x - currentPosition.x, previous.y - currentPosition.y);
+		angleFromPreviousPoint = -atan2f(previous.x - currentPosition.x, previous.y - currentPosition.y);
 		int lineIndex = player.getLineIndex();
-		std::cout << currentPosition.x << std::endl;
 
 		//check for collision with screen border
 		if (currentPosition.x + buffer > screenHeight ||
 			currentPosition.x - buffer < 0 ||
 			currentPosition.y + buffer > screenWidth ||
 			currentPosition.y - buffer < 0
-			) 
+			)
 		{
-			player.restart();
-			currentAngle = 0;
-			currentTick = 0;
-			tilemap.init();
-			previous = player.getStarting();
+			restart();
 			continue;
 		}
 
 		//check for collision with path
 		sf::Vector2i currentCoords(currentPosition);
-		sf::RectangleShape s({ (float)player.getSize() * 2.0f, 10 });
-		s.setOrigin({ player.getSize() / 2.0f }, 5);
-		s.setPosition({ (float)currentCoords.x, 0 });
 
 		bool toBeTerminated = false;
-		for (int i = currentCoords.x - player.getSize() * 4; i < currentCoords.x + player.getSize() * 4; i++) {
-			for (int j = currentCoords.y - player.getSize() * 4; j < currentCoords.y + player.getSize() * 4; j++) {
+		for (int i = currentCoords.x - player.getSize(); i < currentCoords.x + player.getSize(); i++) {
+			for (int j = currentCoords.y - player.getSize(); j < currentCoords.y + player.getSize(); j++) {
 				if (tilemap.getAt(i, j) == 1) {
 					//check distance from center is lower than player radius
 					double distance = std::sqrt(std::pow(i - currentCoords.x, 2) + std::pow(j - currentCoords.y, 2));
@@ -398,96 +479,50 @@ int main() {
 				break;
 		}
 		if (toBeTerminated) {
-			player.restart();
-			currentAngle = 0;
-			currentTick = 0;
-			tilemap.init();
-			previous = player.getStarting();
+			restart();
 			continue;
 		}
+
 		if (player.getPlacesPath()) {
-			
-			
-			
-			
 			Vector c1(player.getSize(), angleFromPreviousPoint + 7 * PI / 6);
 			Vector c2(player.getSize(), angleFromPreviousPoint - 1 * PI / 6);
 			Vector c3(player.getSize(), angleFromPreviousPoint + 7 * PI / 6);
 			Vector c4(player.getSize(), angleFromPreviousPoint - 1 * PI / 6);
 
-
 			sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement());
 			sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement());
 			sf::Vertex v3 = sf::Vertex(currentPosition + c3.getDisplacement());
 			sf::Vertex v4 = sf::Vertex(currentPosition + c4.getDisplacement());
-
-
-			/*
-				Now that I know how triangle strip works...
-			*/
-			//Vector c1(4, angleFromPreviousPoint + 7 * PI / 6);
-			//Vector c2(4, angleFromPreviousPoint - 1 * PI / 6);
-			//sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement());
-			//sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement());
-			
-			//linesArray[lineIndex]->append(v1);
-			//linesArray[lineIndex]->append(v2);
 			linesArray[lineIndex]->append(v3);
 			linesArray[lineIndex]->append(v4);
-			
-			int x1 = (int)v3.position.x;
-			int x2 = (int)v4.position.x;
-			int y1 = (int)v3.position.y;
-			int y2 = (int)v4.position.y;
-
-			int maxx = x1 > x2 ? x1 : x2;
-			int minx = x1 < x2 ? x1 : x2;
-
-			int maxy = y1 > y2 ? y1 : y2;
-			int miny = y1 < y2 ? y1 : y2;
-			
-			//for (int i = minx; i <= maxx; i++) {
-			//	for (int j = miny; j <= maxy; j++) {
-			//		tilemap.setAt(i, j, 1);
-			//	}
-			//}
 
 
-			
-			
-			tilemap.setAt((int)v3.position.x, (int)v3.position.y, 1);
-			tilemap.setAt((int)v4.position.x, (int)v4.position.y, 1);
+			// I think I need full mesh
+			//POIq.push_back(v1.position);
+			//POIq.push_back(v2.position);
+			//POIq.push_back(v3.position);
+			//POIq.push_back(v4.position);
+			POIq.push_back(midpoint(v1.position, v4.position));
+			/* add these to queue and add to tilemap only after player leaves the radius */
 
-			
-
+			for (int i{}; i < POIq.size(); i++) {
+				if (distance(POIq[i], currentPosition) > player.getSize() * 2) {
+					sf::Vector2f p = *POIq.erase(POIq.begin() + i);
+					tilemap.setAt(round(p.x), round(p.y), 1);
+				}
+			}
 		}
 
 		previous = currentPosition;
 
 		//draw stuff
 		window.clear();
-		window.draw(s);
+		window.draw(*arrow);
 		window.draw(player);
 
-
-		/*
+		// TileMap debug
+		if(doDebug) debug();
 		
-		sf::CircleShape distanceIndicator(player.getSize() * 2, 5);
-		distanceIndicator.setFillColor(sf::Color::Magenta);
-		distanceIndicator.setOrigin(player.getSize() * 2, player.getSize() * 2);
-		distanceIndicator.setPosition(currentPosition);
-		window.draw(distanceIndicator); 
-		for (int i{}; i < screenWidth; i++) {
-		for (int j{}; j < screenHeight; j++) {
-		if (tilemap.getAt(i, j) == 1) {
-		sf::CircleShape s(2, 4);
-		s.setFillColor(sf::Color::Red);
-		s.setPosition(i, j);
-		window.draw(s);
-		}
-		}
-		}
-		*/
 		
 		
 		window.display();
@@ -495,5 +530,6 @@ int main() {
 		// this is supposed to make gameplay independent of frames per second and ping in the fututre
 		currentTick = currentTick + 5 * elapsed;
 	}
+	delete[] arrow;
 	return 0;
 }
