@@ -1,8 +1,10 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
 #include <iostream>
 #include <cmath>
 #include <csignal>
 #include <map>
+
 
 #define PI std::acos(0) * 2
 sf::Vector2u screenSize(800, 800);
@@ -86,7 +88,6 @@ public:
 		angle += a;
 	}
 	void applyDisplacement(float distance, float angle) {
-		previous = current;
 		current += {distance * std::cos(angle), distance * std::sin(angle)};
 	}
 	void applyDisplacement(Vector& v) {
@@ -128,12 +129,32 @@ public:
 	}
 };
 
+class ControlManager {
+	/*
+		How each player accesses data about their movement.
 
+		Network would create a tcp listener that updates everything based on packets it recieves
+		Keyboard would recieve keyboard updates from a seperate thread
+
+	*/
+};
+
+class NetworkControl : public ControlManager {
+
+};
+
+//OPTIONAL
+class AIControl: public ControlManager {
+
+};
+
+class KeyboardControl: public ControlManager {
+
+};
 
 class Player : public LineManager, public PositionManager {
 	bool placesPath = true;
 	int size{};
-
 public:
 	friend class MyRenderWindow;
 	Player(sf::Vector2f p, int s) : PositionManager(p), LineManager() {
@@ -149,7 +170,6 @@ public:
 		Vector displacement(distance, getAngle());
 		applyDisplacement(displacement);
 	}
-
 
 	// Get current position on the map
 	sf::Vector2f getPosition() {
@@ -259,7 +279,22 @@ public:
 	TODO:
 	texture/color of lines
 	initially local multiplayer, then game server
+
+	- main menu and a way to measure score
+	- a central game server either natively with sfml packet or... let's do js instead of python!
+	  - I could try to reverse engineer the packet too and get the best of two worlds
+	- https://www.sfml-dev.org/tutorials/2.5/network-socket.php
+
 	Make number of half points dependent on distance traveled
+	- n = get distance ##
+	- get outer points ##
+	- create n points evenly spaced between outer points
+	- if it's moving too slow, the distance should add up until it can be achieved
+
+	Create an AI with minimal neural network
+	- https://www.youtube.com/watch?v=Ve9TcAkpFgY
+
+
 */
 
 // On linked list vs pointer
@@ -269,14 +304,34 @@ public:
 
 // The queue should be a linked list. (?)
 
-int main() {
-	// initiate window and globally used values
-	sf::ContextSettings settings;
-	settings.antialiasingLevel = 0.0;
-	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
-	window.setFramerateLimit(60);
+int server() {
+	sf::TcpListener listener;
+	if (listener.listen(53000) != sf::Socket::Done) {
+		std::cout << "JD" << std::endl;
+	}
+	sf::TcpSocket client;
+	if (listener.accept(client) != sf::Socket::Done) {
+		std::cout << "CD" << std::endl;
+	}
+
+	return 0;
+}
+
+
+int client() {
+	std::cout << "g" << std::endl;
+	sf::TcpSocket socket;
+	if (socket.connect("127.0.0.1", 53000) != sf::Socket::Done)
+	{
+		std::cout << "stuff" << std::endl;
+	}
+	std::cout << "jg" << std::endl;
+	return 0;
+}
+
+
+void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
-	float currentAngle{};
 	
 	// initiate game clock
 	sf::Clock clock;
@@ -305,7 +360,6 @@ int main() {
 		delete[] g[0];
 		delete[] g[1];
 		delete[] g;
-
 		sf::CircleShape distanceIndicator(player.getSize() * 2, 5);
 		distanceIndicator.setFillColor(sf::Color::Magenta);
 		distanceIndicator.setOrigin(player.getSize() * 2, player.getSize() * 2);
@@ -380,5 +434,137 @@ int main() {
 		currentTick = currentTick + 5 * elapsed;
 	}
 	delete arrow;
-	return 0;
+}
+
+enum class State {
+	singleplayer = 1,
+	multiplayerMenu,
+	menu,
+};
+
+
+void menu(MyRenderWindow& window, State& s) {
+	sf::RectangleShape button1({400, 200});
+	sf::RectangleShape button2({400, 200});
+	button2.setFillColor(sf::Color::Red);
+	button2.setPosition(0, 200);
+	while (window.isOpen()) {
+		sf::Event event;
+		while (window.pollEvent(event)) {
+			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+			switch (event.type) {
+			case(sf::Event::Closed): {
+				window.close();
+			}
+			case(sf::Event::MouseButtonPressed): {
+				// pause on button press
+				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
+				break;
+			}
+			case(sf::Event::MouseButtonReleased): {
+				if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+					s = State::singleplayer;
+					std::cout << "G" << std::endl;
+				}
+				if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+					s = State::multiplayerMenu;
+				}
+				break;
+			}
+			}
+		}
+		if (s != State::menu)
+			break;
+		//draw stuff
+		window.clear();
+		window.draw(button1);
+		window.draw(button2);
+		window.display();
+		// increment game tick by a value modified by time between frames
+		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+	}
+}
+
+void multiplayerMenu(MyRenderWindow& window, State& s) {
+	sf::RectangleShape button1({400, 200});
+	sf::RectangleShape button2({400, 200});
+	button2.setFillColor(sf::Color::Red);
+	button2.setPosition(0, 200);
+
+	auto startServer = [&]() {
+
+	};
+	auto joinServer = [&]() {
+
+	};
+	while (window.isOpen()) {
+		sf::Event event;
+		while (window.pollEvent(event)) {
+			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+			switch (event.type) {
+			case(sf::Event::Closed): {
+				window.close();
+			}
+			case(sf::Event::MouseButtonPressed): {
+				// pause on button press
+				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
+				break;
+			}
+			case(sf::Event::MouseButtonReleased): {
+				if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+					startServer();
+				}
+				if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+					joinServer();
+				}
+				break;
+			}
+			}
+		}
+		if (s != State::multiplayerMenu)
+			break;
+		//draw stuff
+		window.clear();
+		window.draw(button1);
+		window.draw(button2);
+		window.display();
+		// increment game tick by a value modified by time between frames
+		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+	}
+	
+}
+
+
+
+
+int main() {
+	// initiate window and globally used values
+	sf::ContextSettings settings;
+	settings.antialiasingLevel = 0.0;
+	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
+	window.setFramerateLimit(60);
+	
+	/*
+		choice of game mode - single player, multi player
+	*/
+
+	State currentState = State::menu;
+	while (window.isOpen()) {
+		switch (currentState) {
+		case State::menu: {
+			menu(window, currentState);
+			break;
+		};
+		case State::singleplayer: {
+			singleplayer(window);
+			break;
+		}
+		case State::multiplayerMenu: {
+			multiplayerMenu(window, currentState);
+			break;
+		}
+		}
+	}
+	window.close();
+		
 }
