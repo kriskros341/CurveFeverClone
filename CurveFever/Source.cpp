@@ -227,11 +227,24 @@ public:
 		Vector c1(size, angleFromPreviousPoint + 1 * PI / 6);
 		Vector c2(size, angleFromPreviousPoint - 1 * PI / 6);
 		
+		// for loop for (heh) generating random color from 0 to 255
+		// dunno how to assign number which will be constant through one whole gameplay
+		srand(time(NULL));
+		int randRGBv0 = rand() % 255;
+		int randRGBv1 = rand() % 255;
+		int randRGBv2 = rand() % 255;
+		/*for (int i{}; i < 6; i++)
+		{
+			srand(time(NULL));
+			randRGBv[i] = rand() % 255;
+			cout << randRGBv[i];
+		}*/
+
 		// create a rectangle
-		sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement());
-		sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement());
-		sf::Vertex v3 = sf::Vertex(current + c1.getDisplacement());
-		sf::Vertex v4 = sf::Vertex(current + c2.getDisplacement());
+		sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement(), sf::Color(255, 255, 0, 255));
+		sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement(), sf::Color(255, 255, 0, 255));
+		sf::Vertex v3 = sf::Vertex(current + c1.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
+		sf::Vertex v4 = sf::Vertex(current + c2.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
 		
 		linesArray[getLineIndex()]->append(v3);
 		linesArray[getLineIndex()]->append(v4);
@@ -396,6 +409,10 @@ void singleplayer(MyRenderWindow& window) {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
 					player.restart();
 				}
+				// color changing prototype
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
+					cout << "C" << endl;
+				}
 				break;
 			};
 			case(sf::Event::KeyReleased): {
@@ -426,6 +443,10 @@ void singleplayer(MyRenderWindow& window) {
 		}
 		//draw stuff
 		window.clear();
+
+		//sf::Texture texture1;
+		//texture1.loadFromFile("C:/Users/barti/OneDrive/Obrazy/jan.jpg");
+
 		window.draw(player);
 		if(doDebug) debug();
 		window.display();
@@ -441,7 +462,6 @@ enum class State {
 	multiplayerMenu,
 	menu,
 };
-
 
 void menu(MyRenderWindow& window, State& s) {
 	sf::RectangleShape button1({400, 200});
@@ -540,7 +560,7 @@ void multiplayerMenu(MyRenderWindow& window, State& s) {
 int main() {
 	// initiate window and globally used values
 	sf::ContextSettings settings;
-	settings.antialiasingLevel = 0.0;
+	settings.antialiasingLevel = 20.0;
 	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
 	window.setFramerateLimit(60);
 	
