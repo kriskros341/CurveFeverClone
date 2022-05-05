@@ -4,11 +4,28 @@
 #include <cmath>
 #include <csignal>
 #include <map>
+#include <thread>
+
+#include "imgui/imgui.h"
+#include "imgui/imgui-SFML.h"
 
 
 #define PI std::acos(0) * 2
 sf::Vector2u screenSize(800, 800);
 using std::cout; using std::endl;
+
+bool comp(const char* a, const char* b) {
+	int i{};
+	if (strlen(a) != strlen(b))
+		return false;
+	while (a[i] != '\0') {
+		if (a[i] != b[i]) {
+			return false;
+		}
+		i++;
+	}
+	return true;
+}
 
 float distance(sf::Vector2f a, sf::Vector2f b) {
 	return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
@@ -255,7 +272,11 @@ public:
 
 class MyRenderWindow : public sf::RenderWindow {
 public:
-	MyRenderWindow(sf::VideoMode v, std::string title, sf::ContextSettings c) : sf::RenderWindow(v, title, sf::Style::Close, c) {}
+	sf::Clock guiClock;
+	MyRenderWindow(sf::VideoMode v, std::string title, sf::ContextSettings c) : sf::RenderWindow(v, title, sf::Style::Close, c) 
+	{
+		guiClock = sf::Clock();
+	}
 	void draw(Player& p) {
 		sf::CircleShape playerDot;
 		playerDot = sf::CircleShape(p.size, 10);
@@ -304,30 +325,6 @@ public:
 
 // The queue should be a linked list. (?)
 
-int server() {
-	sf::TcpListener listener;
-	if (listener.listen(53000) != sf::Socket::Done) {
-		std::cout << "JD" << std::endl;
-	}
-	sf::TcpSocket client;
-	if (listener.accept(client) != sf::Socket::Done) {
-		std::cout << "CD" << std::endl;
-	}
-
-	return 0;
-}
-
-
-int client() {
-	std::cout << "g" << std::endl;
-	sf::TcpSocket socket;
-	if (socket.connect("127.0.0.1", 53000) != sf::Socket::Done)
-	{
-		std::cout << "stuff" << std::endl;
-	}
-	std::cout << "jg" << std::endl;
-	return 0;
-}
 
 
 void singleplayer(MyRenderWindow& window) {
@@ -444,112 +441,191 @@ enum class State {
 
 
 void menu(MyRenderWindow& window, State& s) {
-	sf::RectangleShape button1({400, 200});
-	sf::RectangleShape button2({400, 200});
-	button2.setFillColor(sf::Color::Red);
-	button2.setPosition(0, 200);
-	while (window.isOpen()) {
-		sf::Event event;
-		while (window.pollEvent(event)) {
-			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			switch (event.type) {
-			case(sf::Event::Closed): {
-				window.close();
-			}
-			case(sf::Event::MouseButtonPressed): {
-				// pause on button press
-				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
-				break;
-			}
-			case(sf::Event::MouseButtonReleased): {
-				if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					s = State::singleplayer;
-					std::cout << "G" << std::endl;
-				}
-				if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					s = State::multiplayerMenu;
-				}
-				break;
-			}
-			}
-		}
-		if (s != State::menu)
-			break;
-		//draw stuff
-		window.clear();
-		window.draw(button1);
-		window.draw(button2);
-		window.display();
-		// increment game tick by a value modified by time between frames
-		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+	ImGui::Begin("D");
+	if (ImGui::Button("start")) {
+		cout << "gg" << endl;
+		s = State::singleplayer;
+	}
+	if (ImGui::Button("multiplayer")) {
+		s = State::multiplayerMenu;
+	}
+	ImGui::Text("Jebac Disa");
+	ImGui::End();
+
+	window.clear();
+	ImGui::SFML::Render(window);
+	window.display();
+}
+void clearBuff(char* buffer) {
+	int i{};
+	while (buffer[i] != '\0') {
+		buffer[i] = '\0';
+		i++;
 	}
 }
 
-void multiplayerMenu(MyRenderWindow& window, State& s) {
-	sf::RectangleShape button1({400, 200});
-	sf::RectangleShape button2({400, 200});
-	button2.setFillColor(sf::Color::Red);
-	button2.setPosition(0, 200);
-
-	auto startServer = [&]() {
-
+class networkClient {
+	sf::IpAddress ip;
+	char buffer[200]{};
+	std::size_t recsize{};
+	bool isConnected = false;
+	bool isConnecting = false;
+	sf::TcpSocket socket;
+	const char* w = "welcome";
+public:
+	networkClient() {
+		ip = sf::IpAddress::getLocalAddress();
+	}
+	bool getConnected() {
+		return isConnected;
+	}
+	bool getConnecting() {
+		return isConnecting;
+	}
+	bool isWorking() {
+		return isConnected || isConnecting;
+	}
+	void connect() {
+		isConnecting = true;
+		socket.connect(ip, 53000);
+		socket.receive(buffer, sizeof(buffer), recsize);
+		cout << buffer << endl;
+		if (comp(buffer, w)) {
+			std::cout << "CONNECTED!" << endl;
+			isConnected = true;
+		}
+		isConnecting = false;
+		clearBuff(buffer);
 	};
-	auto joinServer = [&]() {
+	void cancelConnect() {
+		socket.disconnect();
+	}
+	void disconnect() {
+		socket.disconnect();
+		isConnected = false;
+	}
+	void test() {
+		char testString[] = "test!";
+		cout << "g" << endl;
+		socket.send(testString, strlen(testString));
+	}
 
-	};
-	while (window.isOpen()) {
-		sf::Event event;
-		while (window.pollEvent(event)) {
-			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			switch (event.type) {
-			case(sf::Event::Closed): {
-				window.close();
+};
+
+void multiplayerMenu(MyRenderWindow& window, State& s, networkClient& net) {
+	if (ImGui::Button("back")) {
+		s = State::menu;
+		net.disconnect();
+	}
+	if (ImGui::Button("test")) {
+		net.test();
+	}
+
+	window.clear();
+	ImGui::SFML::Render(window);
+	window.display();
+}
+
+void multiplayerConnecting(MyRenderWindow& window, State& s, networkClient& net) {
+	ImGui::Begin(" ");
+	ImGui::Text("Connecting to server");
+	if (ImGui::Button("stop")) {
+		s = State::menu;
+		net.cancelConnect();
+	}
+	ImGui::End();
+	window.clear();
+	ImGui::SFML::Render(window);
+	window.display();
+}
+sf::Mutex globalMutex;
+void server() {
+	sf::TcpListener listener;
+	std::size_t recsize{};
+	sf::SocketSelector selector;
+	std::vector<sf::TcpSocket*> sockets;
+	std::thread t([&]() {
+		while (true) {
+			if (listener.listen(53000) != sf::Socket::Done) {
+				std::cout << "JD" << std::endl;
 			}
-			case(sf::Event::MouseButtonPressed): {
-				// pause on button press
-				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
-				break;
+			sf::TcpSocket* client = new sf::TcpSocket();
+
+			char w[] = "welcome";
+			if (listener.accept(*client) != sf::Socket::Done) {
+				std::cout << "CD" << std::endl;
 			}
-			case(sf::Event::MouseButtonReleased): {
-				if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					startServer();
+			sockets.push_back(client);
+			client->send(w, sizeof(w));
+			selector.add(*client);
+			std::cout << "client accepted" << endl;
+		}
+		});
+/*whenever a user enters there is a huge lag*/
+
+	std::thread f([&]() {
+		while (true) {
+
+			cout << "jd" << endl;			
+			if (selector.wait(sf::seconds(10.f))) {
+				for (auto a = sockets.begin(); a != sockets.end();) {
+					if (selector.isReady(**a)) {
+						char buff[200]{};
+						sf::Socket::Status s = (*a)->receive(buff, sizeof(buff), recsize);
+						if (s == sf::Socket::Status::Disconnected)
+						{
+							selector.remove(**a);
+							//THIS IS SO FUCKING RETARDED
+							a = sockets.erase(a);
+							//delete *a;
+							std::cout << sockets.size() << std::endl;
+						}	else {
+							a++;
+						};
+
+						cout << buff << endl;
+							
+						clearBuff(buff);
+					}
+					else {
+						a++;
+					}
+					}
 				}
-				if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					joinServer();
-				}
-				break;
-			}
+			 else {
+				std::cout << "timeout" << std::endl;
 			}
 		}
-		if (s != State::multiplayerMenu)
-			break;
-		//draw stuff
-		window.clear();
-		window.draw(button1);
-		window.draw(button2);
-		window.display();
-		// increment game tick by a value modified by time between frames
-		// this is supposed to make gameplay independent of frames per second and ping in the fututre
-	}
-	
+	});
+	t.join();
+	f.join();
 }
 
 
-
-
-int main() {
-	// initiate window and globally used values
+void client() {
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 0.0;
 	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
 	window.setFramerateLimit(60);
-	
+	ImGui::SFML::Init(window);
+	networkClient net;
+
 	/*
 		choice of game mode - single player, multi player
 	*/
-
 	State currentState = State::menu;
 	while (window.isOpen()) {
+		sf::Event event;
+		while (window.pollEvent(event)) {
+			ImGui::SFML::ProcessEvent(window, event);
+			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+			switch (event.type) {
+			case(sf::Event::Closed): {
+				window.close();
+			}
+			}
+		}
+		ImGui::SFML::Update(window, window.guiClock.restart());
 		switch (currentState) {
 		case State::menu: {
 			menu(window, currentState);
@@ -560,11 +636,34 @@ int main() {
 			break;
 		}
 		case State::multiplayerMenu: {
-			multiplayerMenu(window, currentState);
+			if (!net.isWorking()) {
+				net.connect();
+			}
+			if (net.getConnected()) {
+				multiplayerMenu(window, currentState, net);
+			}
+			else {
+				multiplayerConnecting(window, currentState, net);
+			}
 			break;
 		}
 		}
 	}
-	window.close();
-		
+	ImGui::SFML::Shutdown();
+}
+
+int main(int argc, char* argv[]) {
+	// initiate window and globally used values
+	bool testServer = true;
+	if (argc > 1) {
+		if ((int)(char)argv[1][0] == (int)'h') {
+			testServer = !testServer;
+		}
+	}
+	if (testServer) {
+		server();
+	}
+	else {
+		client();
+	}
 }
