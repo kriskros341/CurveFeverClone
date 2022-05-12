@@ -346,14 +346,21 @@ int client() {
 
 void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
+	float posX{}, posY{};
 	
 	// initiate game clock
 	sf::Clock clock;
 	float elapsed = 0;
 
+	// random generated starting position
+	srand(time(NULL));
+	posX = rand() % 400 + 40;
+	posY = rand() % 400 + 40;
+	cout << posX << ", " << posY << endl;
+
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
-	Player player({400, 400}, 2); //starting position, starting size
+	Player player({posX, posY}, 2); //starting position, starting size
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -500,6 +507,8 @@ void menu(MyRenderWindow& window, State& s) {
 			//	break;
 			//}
 			//}
+
+			//erased it for now but left for insight
 		}
 		if (s != State::menu)
 			break;
@@ -511,6 +520,7 @@ void menu(MyRenderWindow& window, State& s) {
 		ImGui::Text("Hraj");
 		ImGui::Checkbox("Singleplayer", &ifSingle);
 		ImGui::End();
+		// ImGui provisoric menu thing
 
 		window.clear();
 		if (ifSingle) {
