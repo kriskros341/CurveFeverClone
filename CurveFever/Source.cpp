@@ -4,7 +4,8 @@
 #include <cmath>
 #include <csignal>
 #include <map>
-
+#include "imgui.h"
+#include "imgui-SFML.h"
 
 #define PI std::acos(0) * 2
 sf::Vector2u screenSize(800, 800);
@@ -464,45 +465,68 @@ enum class State {
 };
 
 void menu(MyRenderWindow& window, State& s) {
-	sf::RectangleShape button1({400, 200});
+	/*sf::RectangleShape button1({400, 200});
 	sf::RectangleShape button2({400, 200});
 	button2.setFillColor(sf::Color::Red);
-	button2.setPosition(0, 200);
+	button2.setPosition(0, 200);*/
+	ImGui::SFML::Init(window);
+	sf::Clock deltaClock;
+	bool ifSingle = false;
+
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-			switch (event.type) {
-			case(sf::Event::Closed): {
-				window.close();
-			}
-			case(sf::Event::MouseButtonPressed): {
-				// pause on button press
-				while (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {}
-				break;
-			}
-			case(sf::Event::MouseButtonReleased): {
-				if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					s = State::singleplayer;
-					std::cout << "G" << std::endl;
-				}
-				if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
-					s = State::multiplayerMenu;
-				}
-				break;
-			}
-			}
+
+			ImGui::SFML::ProcessEvent(event);
+
+			//switch (event.type) {
+			//case(sf::Event::Closed): {
+			//	window.close();
+			//}
+			//case(sf::Event::MouseButtonPressed): {
+			//	// pause on button press
+			//	while (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {}
+			//	break;
+			//}
+			//case(sf::Event::MouseButtonReleased): {
+			//	if (button1.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+			//		s = State::singleplayer;
+			//		std::cout << "G" << std::endl;
+			//	}
+			//	if (button2.getGlobalBounds().contains({ (float)mousePosition.x, (float)mousePosition.y })) {
+			//		s = State::multiplayerMenu;
+			//	}
+			//	break;
+			//}
+			//}
 		}
 		if (s != State::menu)
 			break;
 		//draw stuff
+
+		ImGui::SFML::Update(window, deltaClock.restart());
+		ImGui::Begin("CurveFever", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+		ImGui::Text("Hraj");
+		ImGui::Checkbox("Singleplayer", &ifSingle);
+		ImGui::End();
+
 		window.clear();
-		window.draw(button1);
-		window.draw(button2);
+		if (ifSingle) {
+			s = State::singleplayer;
+		}
+		/*window.draw(button1);
+		window.draw(button2);*/
+
+		ImGui::SFML::Render(window);
+
 		window.display();
 		// increment game tick by a value modified by time between frames
 		// this is supposed to make gameplay independent of frames per second and ping in the fututre
 	}
+
+	ImGui::SFML::Shutdown();
 }
 
 void multiplayerMenu(MyRenderWindow& window, State& s) {
