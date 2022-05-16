@@ -291,7 +291,6 @@ public:
 
 /*
 	TODO:
-	texture/color of lines
 	initially local multiplayer, then game server
 
 	- main menu and a way to measure score
@@ -361,6 +360,7 @@ void singleplayer(MyRenderWindow& window) {
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
 	Player player({posX, posY}, 2); //starting position, starting size
+	Player player2({ posX + 10, posY + 10 }, 2);
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -369,6 +369,7 @@ void singleplayer(MyRenderWindow& window) {
 	//Make it all into a  game object
 	auto restart = [&]() {
 		player.restart();
+		player2.restart();
 	};
 	std::vector<std::pair<float, float>>::iterator p;
 	auto debug = [&]() {
@@ -397,6 +398,7 @@ void singleplayer(MyRenderWindow& window) {
 
 	bool doDebug = false;
 	player.setSize(10);
+	player2.setSize(10);
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
@@ -416,6 +418,7 @@ void singleplayer(MyRenderWindow& window) {
 				// restart the game
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
 					player.restart();
+					player2.restart();
 				}
 				// color changing prototype
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
@@ -440,12 +443,23 @@ void singleplayer(MyRenderWindow& window) {
 		if (keymap[sf::Keyboard::D]) {
 			player.changeAngle(0.00001 * elapsed);
 		}
+		if (keymap[sf::Keyboard::J]) {
+			player2.changeAngle(-0.00001 * elapsed);
+		}
+		if (keymap[sf::Keyboard::L]) {
+			player2.changeAngle(0.00001 * elapsed);
+		}
 		doDebug = keymap[sf::Keyboard::B];
 		player.setPlacesPath(!keymap[sf::Keyboard::Space]);
 		// Move player
 		// Do not touch without a commit. Memory safe, but very fragile;
 		player.moveBy(0.0003 * elapsed);
+		player2.moveBy(0.0003 * elapsed);
 		if (player.checkForCollision()) {
+			restart();
+			continue;
+		}
+		if (player2.checkForCollision()) {
 			restart();
 			continue;
 		}
@@ -456,6 +470,7 @@ void singleplayer(MyRenderWindow& window) {
 		//texture1.loadFromFile("C:/Users/barti/OneDrive/Obrazy/jan.jpg");
 
 		window.draw(player);
+		window.draw(player2);
 		if(doDebug) debug();
 		window.display();
 		// increment game tick by a value modified by time between frames
