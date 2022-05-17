@@ -221,6 +221,30 @@ public:
 		}
 		return false;
 	}
+
+	bool checkForCollision(Player* other) {
+		// check for collision with screen border, then
+		// check for collision with path
+		if (current.x > screenSize.x ||
+			current.x < 0 ||
+			current.y > screenSize.y ||
+			current.y < 0)
+		{
+			return true;
+		}
+		for (auto p = other->collisionPointMap.begin(); p < other->collisionPointMap.end(); ++p) {
+			if (distance(current, { p->first, p->second }) < size * 2) {
+				//collision occured
+				return true;
+			}
+		}
+		return false;
+	}
+
+	int randRGBv0 = rand() % 255;
+	int randRGBv1 = rand() % 255;
+	int randRGBv2 = rand() % 255;
+
 	void setPath() {
 
 		// I think it can be done better
@@ -230,10 +254,7 @@ public:
 		
 		// for loop for (heh) generating random color from 0 to 255
 		// dunno how to assign number which will be constant through one whole gameplay
-		srand(time(NULL));
-		int randRGBv0 = rand() % 255;
-		int randRGBv1 = rand() % 255;
-		int randRGBv2 = rand() % 255;
+
 		/*for (int i{}; i < 6; i++)
 		{
 			srand(time(NULL));
@@ -342,7 +363,6 @@ int client() {
 	return 0;
 }
 
-
 void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
 	float posX{}, posY{};
@@ -360,7 +380,7 @@ void singleplayer(MyRenderWindow& window) {
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
 	Player player({posX, posY}, 2); //starting position, starting size
-	Player player2({ posX + 10, posY + 10 }, 2);
+	Player player2({ posX + 50, posY + 50 }, 2);
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -371,6 +391,10 @@ void singleplayer(MyRenderWindow& window) {
 		player.restart();
 		player2.restart();
 	};
+	std::vector<Player*> players;
+	players.push_back(&player);
+	players.push_back(&player2);
+
 	std::vector<std::pair<float, float>>::iterator p;
 	auto debug = [&]() {
 		arrow->clear();
@@ -453,21 +477,36 @@ void singleplayer(MyRenderWindow& window) {
 		player.setPlacesPath(!keymap[sf::Keyboard::Space]);
 		// Move player
 		// Do not touch without a commit. Memory safe, but very fragile;
-		player.moveBy(0.0003 * elapsed);
-		player2.moveBy(0.0003 * elapsed);
-		if (player.checkForCollision()) {
+		player.moveBy(0.0002 * elapsed);
+		player2.moveBy(0.0002 * elapsed);
+		/*
+		for gracz in gracze:
+			for graczz in gracze:
+				if gracz.checkcoll(graczz):
+					restart()
+		*/
+		bool ifFound = false;
+		for (Player* p : players) {
+			for (Player* q : players) {
+				if (p->checkForCollision(q)) {
+					restart();
+					ifFound = true;
+					continue;
+				}
+			}
+			if (ifFound == true) {continue;}
+		}
+		/*if (player.checkForCollision()) {
 			restart();
 			continue;
 		}
 		if (player2.checkForCollision()) {
 			restart();
 			continue;
-		}
+		}*/
 		//draw stuff
+		if (ifFound == true) { continue; }
 		window.clear();
-
-		//sf::Texture texture1;
-		//texture1.loadFromFile("C:/Users/barti/OneDrive/Obrazy/jan.jpg");
 
 		window.draw(player);
 		window.draw(player2);
@@ -608,6 +647,7 @@ void multiplayerMenu(MyRenderWindow& window, State& s) {
 
 int main() {
 	// initiate window and globally used values
+	srand(time(NULL));
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 20.0;
 	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
