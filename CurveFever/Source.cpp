@@ -1,5 +1,3 @@
-#include <SFML/Graphics.hpp>
-#include <SFML/Network.hpp>
 #include <iostream>
 #include <cmath>
 #include <csignal>
@@ -7,8 +5,13 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <list>
+#include <vector>
+#include <sstream>
 #include "imgui/imgui.h"
 #include "imgui/imgui-SFML.h"
+#include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
 
 
 #define PI std::acos(0) * 2
@@ -84,6 +87,7 @@ class PositionManager {
 	sf::Vector2f starting;
 	friend class Player;
 public:
+	std::mutex positionMutex;
 	PositionManager(sf::Vector2f p) : current(p), starting(p), previous(p) {}
 	void restart() {
 		current = starting;
@@ -108,7 +112,7 @@ public:
 	void applyDisplacement(float distance, float angle) {
 		current += {distance * std::cos(angle), distance * std::sin(angle)};
 	}
-	void setPosition(sf::Vector2f& n) {
+	void setPosition(const sf::Vector2f& n) {
 		previous = current;
 		current = n;
 	}
@@ -122,13 +126,14 @@ class LineManager {
 	const int startingLineIndex = 0 - 1; // because it's always incremented by one whenever path is placed;
 	int lineIndex = startingLineIndex; 
 public:
+	std::mutex queueMutex;
 	std::vector<sf::VertexArray*> linesArray;
 	std::vector<std::pair<float, float>> collisionPointMap;
 	std::vector<std::pair<float, float>> collisionPointQueue;
 	LineManager() {
 		linesArray.reserve(100);
 		collisionPointMap.reserve(10000);
-		collisionPointQueue.reserve(10);
+		collisionPointQueue.reserve(100);
 	}
 	void initiateLine() {
 		lineIndex++;
@@ -148,6 +153,12 @@ public:
 	}
 	void setLineindex(int i) {
 		lineIndex = i;
+	}
+	virtual ~LineManager() {
+		// TO TO JEST ALOKOWANE W HEAP?! C++ JEST SPIERDOLENIE NIEPRZEJZYSTHYHHGo; jwgqbetb olnk
+		collisionPointQueue.clear();
+		collisionPointMap.clear();
+		linesArray.clear();
 	}
 };
 
@@ -236,10 +247,17 @@ public:
 	int getId() {
 		return id;
 	}
-
+	void moveTo(sf::Vector2f newp) {
+		if (placesPath) {
+			setPath();
+			updateCollisionQueue();
+		}
+		setPosition(newp);
+	}
 	void moveBy(float distance) {
 		if (placesPath) {
 			setPath();
+			updateCollisionQueue();
 		}
 		Vector displacement(distance, getAngle());
 		applyDisplacement(displacement);
@@ -286,14 +304,51 @@ public:
 		{
 			return true;
 		}
-		for (auto p = collisionPointMap.begin(); p < collisionPointMap.end(); ++p) {
-			if (distance(current, {p->first, p->second}) < size * 2) {
-				//collision occured
+		for (std::pair<float, float> point : collisionPointMap) {
+			if (distance(current, {point.first, point.second}) < size * 2) {
 				return true;
 			}
 		}
 		return false;
 	}
+	void updateCollisionQueue() {
+		std::vector<std::pair<float, float>>::iterator queuedPoint = collisionPointQueue.begin();
+		for (; queuedPoint != collisionPointQueue.end();) {
+			if (distance(current, { queuedPoint->first, queuedPoint->second }) > size * 2) {
+				collisionPointMap.push_back(*queuedPoint);
+				//rescure p address;
+				queuedPoint = collisionPointQueue.erase(queuedPoint);
+			}
+			else {
+				//increment p address
+				queuedPoint++;
+			};
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		/*
+		
+		const auto pred = [&](std::pair<float, float>& queuedPoint) {
+			return distance(current, { queuedPoint.first, queuedPoint.second }) > size * 2;
+		};
+		//Put all the matching points at the beggining of the vector
+		auto matched = std::partition(collisionPointQueue.begin(), collisionPointQueue.end(), pred);
+		//Add them to another list
+		const auto action = [&](std::pair<float,float> queuedPoint) { 
+			collisionPointMap.push_back(queuedPoint);
+		};
+		//std::for_each(matched, collisionPointQueue.end(), action);
+		//erase them
+		std::cout << "gg" << &*collisionPointQueue.begin() << std::endl;
+		std::cout << "ga" << &matched << std::endl;
+		std::cout << "gu" << &*(collisionPointQueue.end() - 1) << std::endl;
+		//collisionPointQueue.erase(matched, collisionPointQueue.end());
+		*/
+	}
+
+	int randRGBv0 = rand() % 255;
+	int randRGBv1 = rand() % 255;
+	int randRGBv2 = rand() % 255;
+
 	void setPath() {
 
 		// I think it can be done better
@@ -304,9 +359,6 @@ public:
 		// for loop for (heh) generating random color from 0 to 255
 		// dunno how to assign number which will be constant through one whole gameplay
 		srand(time(NULL));
-		int randRGBv0 = rand() % 255;
-		int randRGBv1 = rand() % 255;
-		int randRGBv2 = rand() % 255;
 		/*for (int i{}; i < 6; i++)
 		{
 			srand(time(NULL));
@@ -319,25 +371,14 @@ public:
 		sf::Vertex v2 = sf::Vertex(previous + c2.getDisplacement(), sf::Color(255, 255, 0, 255));
 		sf::Vertex v3 = sf::Vertex(current + c1.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
 		sf::Vertex v4 = sf::Vertex(current + c2.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
-		
 		linesArray[getLineIndex()]->append(v3);
 		linesArray[getLineIndex()]->append(v4);
 		// create point in the center
 		sf::Vector2f mid = midpoint(v1.position, v4.position);
 		collisionPointQueue.push_back({ mid.x, mid.y });
 		// apply new points if out of range of player
-		for (auto p = collisionPointQueue.begin(); p != collisionPointQueue.end();) {
-			if(distance(current, { p->first, p->second }) > size * 2) {
-				collisionPointMap.push_back(*p);
-				//rescure p address;
-				p = collisionPointQueue.erase(p);
-			}
-			else {
-				//increment p address
-				p++;
-			}
-		}
 	}
+	~Player() {}
 };
 
 class ControlSignals {
@@ -354,7 +395,24 @@ class NetworkPlayer : public Player {
 public:
 	sf::TcpSocket*& c;
 	ControlSignals ctrl;
-	NetworkPlayer(sf::TcpSocket*&co) : Player(), c(co), ctrl() {};
+	sf::Clock clock;
+	sf::Time timeSinceLastUpdate;
+	bool movable{};
+	NetworkPlayer(sf::TcpSocket*&co) : Player(), c(co), ctrl() {
+		clock.restart(); // needed?
+		movable = true;
+	};
+
+	bool processMovement(sf::Packet& p) {
+		timeSinceLastUpdate = clock.restart();
+		bool left, right, space;
+		p >> left >> right >> space;
+		changeAngle(-1 * left * 0.003 * timeSinceLastUpdate.asMilliseconds());
+		changeAngle(1 * right * 0.003 * timeSinceLastUpdate.asMilliseconds());
+		moveBy(0.05 * timeSinceLastUpdate.asMilliseconds());
+		return checkForCollision();
+		
+	}
 };
 
 class MyRenderWindow : public sf::RenderWindow {
@@ -480,10 +538,6 @@ void singleplayer(MyRenderWindow& window) {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
 					player.restart();
 				}
-				// color changing prototype
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
-					cout << "C" << endl;
-				}
 				break;
 			};
 			case(sf::Event::KeyReleased): {
@@ -538,7 +592,6 @@ enum class State {
 void menu(MyRenderWindow& window, State& s) {
 	ImGui::Begin("D");
 	if (ImGui::Button("start")) {
-		cout << "gg" << endl;
 		s = State::singleplayer;
 	}
 	if (ImGui::Button("multiplayer")) {
@@ -625,45 +678,128 @@ public:
 		p << t;
 		socket.send(p);
 		sf::Packet p2;
-		socket.receive(p2);
-		p2 >> t;
-		if (t == "OK") {
-			return true;
+		sf::Clock c;
+		while (true) {
+			socket.receive(p2);
+			p2 >> t;
+			if (t == "START") {
+				return true;
+			}
+			if (c.getElapsedTime().asSeconds() > 5) {
+				break;
+			}
 		}
-		else {
-			return false;
-		}
+		return false;
 	}
 	sf::TcpSocket& getSocket() {
 		return socket;
 	}
 };
 
+
+// length of the string  
+int len(std::string str)
+{
+	int length = 0;
+	for (int i = 0; str[i] != '\0'; i++)
+	{
+		length++;
+
+	}
+	return length;
+}
+
+void splitTo(std::string str, const char seperator, std::vector<std::string>& cont)
+{
+	int currIndex = 0, i = 0;
+	int startIndex = 0, endIndex = 0;
+	while (i <= len(str))
+	{
+		if (str[i] == seperator || i == len(str))
+		{
+			endIndex = i;
+			std::string subStr = "";
+			subStr.append(str, startIndex, endIndex - startIndex);
+			cont.push_back(subStr);
+			currIndex += 1;
+			startIndex = endIndex + 1;
+		}
+		i++;
+	}
+}
+
+
+std::pair<std::string, std::string> splitOnceBy(std::string str, const char seperator)
+{
+	int currIndex = 0, i = 0;
+	int startIndex = 0, endIndex = 0;
+	std::pair<std::string, std::string> result;
+	while (i <= len(str))
+	{
+		if (str[i] == seperator || i == len(str))
+		{
+			endIndex = i;
+			std::string subStr = "";
+			subStr.append(str, startIndex, endIndex - startIndex);
+			result.first = subStr;
+			subStr = "";
+			subStr.append(str, endIndex - startIndex);
+			result.second = subStr;
+			return result;
+		}
+		i++;
+	}
+	result.first = str;
+	return result;
+}
+
+
 void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
 	Player player;
-	std::thread sendLoopThread([&]() {
+	srand(time(NULL));
+	std::vector<Player*> players;
+	players.push_back(new Player({300, 300}, 8));
+	players.push_back(new Player({500, 500}, 8));
+	std::thread recvLoopThread([&]() {
 		while (true) {
 			sf::Packet pac1;
 			net.getSocket().receive(pac1);
-			float newX = 0, newY = 0;
-			pac1 >> newX >> newY;
-			sf::Vector2f n;
-			n.x = newX;
-			n.y = newY;
-			player.setPosition(n);
+			std::string procedure;
+			std::string stringifiedData;
+			pac1 >> procedure >> stringifiedData;
+			
+			if (procedure == "START") {
+				
+			}
+
+			if (procedure == "UPDATE") {
+				std::vector<std::string> playerData;
+				std::pair<std::string, std::string> playerPosition;
+				splitTo(stringifiedData, '|', playerData);
+				for (int i = 0; i < playerData.size(); i++) {
+					if (i < players.size()) {
+						playerPosition = splitOnceBy(playerData[i], ' ');
+						sf::Vector2f newPosition = {
+								(float)std::atof(playerPosition.first.c_str()),
+								(float)std::atof(playerPosition.second.c_str())
+						};
+						//std::cout << i << " ";
+						players[i]->moveTo(newPosition);
+					}
+				}
+				//std::cout << std::endl;
+			}
 		}
-		
 		});
-	std::thread recvLoopThread([&]() {
+	std::thread sendLoopThread([&]() {
 		while (true) {
 			sf::Packet pac2;
 			bool right = net.keymap[sf::Keyboard::A], left = net.keymap[sf::Keyboard::D], space = net.keymap[sf::Keyboard::Space];
 			std::string procedure = "UPDATE";
-			pac2 << procedure << right << left << space;
-
-			std::cout << "UPDATE" << right << left << space << std::endl;
+			pac2 << procedure << left << right << space;
+			std::cout << procedure << left << right << space << std::endl;
 			net.getSocket().send(pac2);
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			std::this_thread::sleep_for(std::chrono::milliseconds(40));
 		}
 		});
 	while (window.isOpen()) {
@@ -684,10 +820,14 @@ void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
 			}
 		}
 		window.clear();
-		window.draw(player);
+		for (auto x : players) {
+			window.draw(*x);
+		}
 		window.display();
 	}
-
+	for (auto x : players) {
+		delete x;
+	}
 }
 void multiplayerMenu(MyRenderWindow& window, State& s, networkClient& net) {
 	if (ImGui::Button("back")) {
@@ -727,140 +867,84 @@ void multiplayerConnecting(MyRenderWindow& window, State& s, networkClient& net)
 }
 sf::Mutex globalMutex;
 
-class Game {
-	bool inProgress = false;
-public:
-	std::vector<NetworkPlayer*> players;
-	void start() {
-		for (std::vector<NetworkPlayer*>::iterator p = players.begin(); p != players.end(); ++p) {
-			NetworkPlayer* playerInstance = *p;
-			sf::Packet pac;
-			std::string msg = "OK";
-			pac << msg;
-			std::cout << msg << std::endl;
-			playerInstance->c->send(pac);
-		}
-		inProgress = true;
-		runGameLoop();
-		//rungameloop thread
-	}
-	void runGameLoop() {
-		sf::Time elapsed;
-		sf::Clock mainClock;
-		while (inProgress && players.size() > 0) {
-			for (std::vector<NetworkPlayer*>::iterator p = players.begin(); p != players.end(); ++p) {
-				NetworkPlayer* PlayerInstance = *p;
-				std::cout << PlayerInstance->ctrl.left << PlayerInstance->ctrl.right << std::endl;
-				PlayerInstance->changeAngle(PlayerInstance->ctrl.left * -0.00001 * elapsed.asMicroseconds());
-				PlayerInstance->changeAngle(PlayerInstance->ctrl.right * 0.00001 * elapsed.asMicroseconds());
-				PlayerInstance->moveBy(0.00003 * elapsed.asMicroseconds());
-				if (PlayerInstance->checkForCollision()) {
-					std::cout << "PLAYER COLLIDED" << std::endl;
-				}
-			}
-			sendUpdates();
-			elapsed = mainClock.restart();
-		}
-	}
-	void sendUpdates() {
-		for (std::vector<NetworkPlayer*>::iterator p = players.begin(); p != players.end(); ++p) {
-			NetworkPlayer*& PlayerInstance = *p;
-			sf::Packet pac;
-			sf::Vector2f newPosition = PlayerInstance->getPosition();
-			pac << newPosition.x << newPosition.y;
-			PlayerInstance->c->send(pac);
-		}
-
-	}
-	void update() {
-		
-	}
-};
-// A MESS
-class Server {
-public:
+class Server2ndTry {
 	sf::TcpListener listener;
-	std::size_t recsize{};
 	sf::SocketSelector selector;
+	std::mutex socketMutex;
 	std::vector<sf::TcpSocket*> sockets;
-	std::vector<Game*> games;
-	void parseRecieved(sf::Packet p, sf::TcpSocket*& s) {
-		std::string st;
-		p >> st;
-		std::cout << st << std::endl;
-		if (st == "TEST") {
-			std::cout << st << std::endl;
-			std::cout << games[0]->players.size() << std::endl;
-		}
-		if (st == "START") {
-			std::thread* t = new std::thread([&]() {games[0]->start();});
-		}
-		if (st == "UPDATE") {
-			bool isFound = false;
-			NetworkPlayer* savedPlayer = 0;
-			for (std::vector<Game*>::iterator g = games.begin(); g != games.end(); ++g) {
-				Game*& f = *g; // I think only the last *& matters since these all are pointers, but whatever
-				for (std::vector<NetworkPlayer*>::iterator p = f->players.begin(); p != f->players.end(); ++p) {
-					NetworkPlayer*& o = *p;
-					sf::TcpSocket*& playerSocket = o->c;
-					if (playerSocket == s) {
-						isFound = true;
-						savedPlayer = o;
-						break;
-					}
-				}
-				if (isFound) {
-					break;
-				}
-			}
-			if (isFound) {
-				bool left = false;
-				bool right = false;
-				bool space = false;
-				p >> left >> right >> space;
-				std::cout << "UPDATING CONTROLS ON " << s->getRemotePort() << ": " << left << right << space << std::endl;
-				savedPlayer->ctrl = ControlSignals(left, right, space);
-			}
-		}
-		if (st == "JOIN") {
-			bool isFound = false;
-			NetworkPlayer* savedPlayer = 0;
-			for (std::vector<Game*>::iterator g = games.begin(); g != games.end(); ++g) {
-				Game*& f = *g;
-				for (std::vector<NetworkPlayer*>::iterator p = f->players.begin(); p != f->players.end(); ++p) {
-					NetworkPlayer*& o = *p;
-					sf::TcpSocket*& playerSocket = o->c;
-					if (playerSocket == s) {
-						isFound = true;
-						savedPlayer = o;
-						break;
-					}
-				}
-				if (isFound) {
-					break;
-				}
-			}
-
-
-			if (isFound) {
-				std::cout << "PLAYER ALREADY EXISTS FROM " << s->getRemoteAddress() << ":" << s->getRemotePort() << std::endl;
-			}
-			else {
-				NetworkPlayer* playerInstance = new NetworkPlayer(s);
-				games[0]->players.push_back(playerInstance);
-				sf::Packet ps;
-				std::cout << "PLAYER CREATED FROM " << s->getRemoteAddress() << ":" << s->getRemotePort() << std::endl;
-				s->send(ps);
-			}
-		}
-	};
+	std::vector<NetworkPlayer*> players;
+	sf::Clock clock;
+	bool started{};
+public:
 	void start() {
-		games.push_back(new Game);
 		std::thread t([&]() {acceptLoop();});
 		std::thread y([&]() {recvLoop();});
-		t.join();
-		y.join();
-	};
+		while (true) {}
+	}
+
+	void parseRecieved(sf::Packet& p, sf::TcpSocket*& s) {
+		std::string st;
+		p >> st;
+		if (st == "START") {
+			sf::Packet ps;
+			std::cout << "PLAYER CREATED FROM " << s->getRemoteAddress() << ":" << s->getRemotePort() << std::endl;
+			if (!started) {
+				ps << "START";
+				s->send(ps);
+				started = true;
+			}
+			else {
+				ps << "START FAILED";
+			}
+			for (auto player : players) {
+				player->c->send(ps);
+			}
+		}
+		if (st == "UPDATE") {
+			std::cout << "UPDATE" << std::endl;
+			sf::Packet ps;
+			for (auto player : players) {
+				if (player->c == s) {
+					if (player->movable && player->processMovement(p)) {
+						player->movable = false;
+					};
+				}
+			}
+
+			std::stringstream stream;
+			std::string data;
+			for (auto player : players) {
+				stream << std::fixed << player->getPosition().x;
+				stream << " ";
+				stream << std::fixed << player->getPosition().y;
+				stream << "|";
+			}
+			data = stream.str();
+			ps << "UPDATE";
+			ps << data;
+			s->send(ps);
+		}
+		if (st == "JOIN") {
+			sf::Packet ps;
+			std::cout << "JOIN" << std::endl;
+			bool found{};
+			for (auto player : players) {
+				if (player->c == s) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				NetworkPlayer* c = new NetworkPlayer(s);
+				players.push_back(c);
+				ps << "JOIN";
+				s->send(ps);
+				return;
+			}
+			ps << "JOIN FAILED";
+			s->send(ps);
+		}
+	}
 	void acceptLoop() {
 		while (true) {
 			if (listener.listen(53000) != sf::Socket::Done) {
@@ -872,36 +956,40 @@ public:
 			if (listener.accept(*client) != sf::Socket::Done) {
 				std::cout << "CD" << std::endl;
 			}
+
+			socketMutex.lock();
 			sockets.push_back(client);
 			client->send(w, sizeof(w));
 			selector.add(*client);
 			std::cout << "client accepted" << endl;
+			socketMutex.unlock();
 		}
-	};
-	void recvLoop()
-	{
+	}
+	void recvLoop() {
 		while (true) {
 			if (selector.wait(sf::seconds(10.f))) {
-				for (auto a = sockets.begin(); a != sockets.end();) {
-					if (selector.isReady(**a)) {
-						char buff[200]{};
+				for (auto iter = sockets.begin(); iter != sockets.end();) {
+					socketMutex.lock();
+					sf::TcpSocket& soc = **iter;
+					if (selector.isReady(soc)) {
 						sf::Packet p;
-						sf::Socket::Status s = (*a)->receive(p);
+						sf::Socket::Status s = soc.receive(p);
 						if (s == sf::Socket::Status::Disconnected)
 						{
-							selector.remove(**a);
+							selector.remove(soc);
 							//THIS IS SO FUCKING RETARDED
-							a = sockets.erase(a);
+							iter = sockets.erase(iter);
 							//delete *a;
-							std::cout << sockets.size() << std::endl;
-						}	else {
-							parseRecieved(p, *a);
-							a++;
+						}	
+						else {
+							parseRecieved(p, *iter);
+							iter++;
 						};
 					}
 					else {
-						a++;
+						iter++;
 					}
+					socketMutex.unlock();
 					}
 				}
 			 else {
@@ -909,14 +997,21 @@ public:
 			}
 		}
 	};
+	~Server2ndTry() {
+		for (auto x : players) {
+			delete x;
+		}
+
+		for (auto x : sockets) {
+			delete x;
+		}
+	}
 };
 
-void server() {
-/*whenever a user enters there is a huge lag*/
-	Server s;
+void server2ndTry() {
+	Server2ndTry s;
 	s.start();
 }
-
 
 void client() {
 	sf::ContextSettings settings;
@@ -974,14 +1069,14 @@ void client() {
 
 int main(int argc, char* argv[]) {
 	// initiate window and globally used values
-	bool testServer = false;
+	bool testServer = true;
 	if (argc > 1) {
 		if ((int)(char)argv[1][0] == (int)'h') {
 			testServer = !testServer;
 		}
 	}
 	if (testServer) {
-		server();
+		server2ndTry();
 	}
 	else {
 		client();
