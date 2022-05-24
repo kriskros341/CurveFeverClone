@@ -15,7 +15,7 @@
 
 
 #define PI std::acos(0) * 2
-sf::Vector2u screenSize(800, 800);
+sf::Vector2u screenSize(1000, 1000);
 using std::cout; using std::endl;
 
 bool comp(const char* a, const char* b) {
@@ -1117,14 +1117,17 @@ void client() {
 	ImGui::SFML::Shutdown();
 }
 
-int main(int argc, char* argv[]) {
+int main() {
 	srand(time(NULL));
+	char varstart;
 	// initiate window and globally used values
+
+	cout << "Enter 'y': " << endl;
+	std::cin >> varstart;
+
 	bool testServer = true;
-	if (argc > 1) {
-		if ((int)(char)argv[1][0] == (int)'h') {
-			testServer = !testServer;
-		}
+	if (varstart == 'y') {
+		testServer = !testServer;
 	}
 	if (testServer) {
 		server2ndTry();
