@@ -1,24 +1,33 @@
-﻿  Source.cpp
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(35,18): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(101,66): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(356,42): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(356,13): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(357,42): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(357,13): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(361,13): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(410,33): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(411,33): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(412,15): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(427,32): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(428,32): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(428,24): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(505,54): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(507,70): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(507,48): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(552,43): warning C4244: '=': conversion from 'sf::Int64' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(555,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(558,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(564,24): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(759,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(1018,31): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
-  CurveFever.vcxproj -> C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\x64\Debug\CurveFever.exe
+﻿  imgui-SFML.cpp
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\imgui\imgui-SFML.cpp(559,67): warning C4244: "argument": konwersja z "const int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\imgui\imgui-SFML.cpp(559,48): warning C4244: "argument": konwersja z "const int" do "float", możliwa utrata danych
+  imgui.cpp
+  imgui_draw.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  Source.cpp
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(35,18): warning C4244: "return": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(101,66): warning C4244: "return": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(356,42): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(356,13): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(357,42): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(357,13): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(361,13): warning C4244: "argument": konwersja z "time_t" do "unsigned int", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(410,33): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(411,33): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(412,15): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(427,32): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(428,32): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(428,24): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(505,54): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(507,70): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(507,48): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(552,43): warning C4244: "=": konwersja z "sf::Int64" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(555,32): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(558,31): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(564,24): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(759,12): warning C4244: "argument": konwersja z "time_t" do "unsigned int", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(1018,31): warning C4244: "=": konwersja z "double" do "unsigned int", możliwa utrata danych
+  Generowanie kodu...
+  LINK : nie znaleziono elementu C:\Users\barti\Documents\CurveFeverClone\x64\Debug\CurveFever.exe ani nie został on skompilowany podczas ostatniego konsolidowania przyrostowego; zostanie wykonana pełna konsolidacja
+  CurveFever.vcxproj -> C:\Users\barti\Documents\CurveFeverClone\x64\Debug\CurveFever.exe
