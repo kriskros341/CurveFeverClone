@@ -93,6 +93,14 @@ public:
 		current = starting;
 		previous = starting;
 	}
+	PositionManager(float radius = 300) {
+		angle = rand() % 360;
+		cout << std::cos(angle) << ", " << std::sin(angle) << ", radians: " << angle * PI / 180 << endl;
+
+		sf::Vector2f r = { radius, 0 };
+		sf::Vector2f secr = {screenSize.x/2 + ( r.x * cos(angle) - r.y * sin(angle) ),screenSize.y/2 + ( r.x * sin(angle) + r.y * cos(angle) ) };
+		current = secr, starting = secr, previous = secr;
+	}
 	float getDistanceFromPrevious() {
 		return distance(current, previous);
 	}
@@ -236,10 +244,16 @@ class KeyboardControl: public ControlManager {
 class Player : public LineManager, public PositionManager {
 	bool placesPath = true;
 	int size{};
-	int id;
+	int id{};
+	sf::Clock linerestart;
 public:
 	friend class MyRenderWindow;
 	Player(sf::Vector2f p = { 400, 400 }, int s = 5) : PositionManager(p), LineManager() {
+		size = s;
+		placesPath = true;
+		initiateLine();
+	}
+	Player(int radius = 300, int s = 5) : PositionManager(radius), LineManager() {
 		size = s;
 		placesPath = true;
 		initiateLine();
@@ -374,9 +388,6 @@ public:
 		float angleFromPreviousPoint = getAngleFromPrevious();
 		Vector c1(size, angleFromPreviousPoint + 1 * PI / 6);
 		Vector c2(size, angleFromPreviousPoint - 1 * PI / 6);
-		
-		// for loop for (heh) generating random color from 0 to 255
-		// dunno how to assign number which will be constant through one whole gameplay
 
 		// create a rectangle
 		sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement(), sf::Color(255, 255, 0, 255));
@@ -385,6 +396,8 @@ public:
 		sf::Vertex v4 = sf::Vertex(current + c2.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
 		linesArray[getLineIndex()]->append(v3);
 		linesArray[getLineIndex()]->append(v4);
+		(std::chrono::milliseconds(5));
+
 		// create point in the center
 		sf::Vector2f mid = midpoint(v1.position, v4.position);
 		collisionPointQueue.push_back({ mid.x, mid.y });
@@ -410,7 +423,7 @@ public:
 	sf::Clock clock;
 	sf::Time timeSinceLastUpdate;
 	bool movable{};
-	NetworkPlayer(sf::TcpSocket*&co) : Player(), c(co), ctrl() {
+	NetworkPlayer(sf::TcpSocket*&co) : Player(300), c(co), ctrl() {
 		clock.restart(); // needed?
 		movable = true;
 	};
@@ -486,21 +499,16 @@ public:
 
 void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
-	float posX{}, posY{};
-	
+	srand(time(NULL));
+
 	// initiate game clock
 	sf::Clock clock;
 	float elapsed = 0;
 
-	srand(time(NULL));
-	posX = rand() % 400 + 40;
-	posY = rand() % 400 + 40;
-	cout << posX << ", " << posY << endl;
-
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
-	Player player({posX, posY}, 2); //starting position, starting size
-	Player player2({ posX + 50, posY + 50}, 2);
+	Player player(200, 2); //starting position, starting size
+	Player player2(200, 2);
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -591,7 +599,8 @@ void singleplayer(MyRenderWindow& window) {
 			player2.changeAngle(0.00001 * elapsed);
 		}
 		doDebug = keymap[sf::Keyboard::B];
-		player.setPlacesPath(!keymap[sf::Keyboard::Space]);
+		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
+
 		// Move player
 		// Do not touch without a commit. Memory safe, but very fragile;
 		player.moveBy(0.0002 * elapsed);
@@ -641,14 +650,24 @@ enum class State {
 
 void menu(MyRenderWindow& window, State& s) {
 	ImGui::Begin("D");
+
+	// background tries
+	/*sf::RectangleShape background;
+	background.setSize(sf::Vector2f(400, 400));
+	sf::Texture maintexture;
+	maintexture.loadFromFile("CurveFever/Texture/gg.jpeg");
+	background.setTexture(&maintexture);*/
+
 	if (ImGui::Button("start")) {
 		s = State::singleplayer;
 	}
 	if (ImGui::Button("multiplayer")) {
 		s = State::multiplayerMenu;
 	}
-	ImGui::Text("Jebac Disa");
+	ImGui::Text("testest");
 	ImGui::End();
+
+	//window.draw(background);
 
 	window.clear();
 	ImGui::SFML::Render(window);
@@ -805,7 +824,7 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 
 
 void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
-	Player player;
+	Player player(300);
 	srand(time(NULL));
 	std::vector<Player*> players;
 	players.push_back(new Player({300, 300}, 8));
