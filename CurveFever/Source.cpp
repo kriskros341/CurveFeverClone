@@ -6,6 +6,7 @@
 #include <mutex>
 #include <chrono>
 #include <list>
+#include <functional>
 #include <vector>
 #include <sstream>
 #include "imgui/imgui.h"
@@ -15,7 +16,7 @@
 
 
 #define PI std::acos(0) * 2
-sf::Vector2u screenSize(800, 800);
+const sf::Vector2u screenSize(1000, 1000);
 using std::cout; using std::endl;
 
 bool comp(const char* a, const char* b) {
@@ -92,6 +93,14 @@ public:
 	void restart() {
 		current = starting;
 		previous = starting;
+	}
+	PositionManager(float radius = 300) {
+		angle = rand() % 360;
+		cout << std::cos(angle) << ", " << std::sin(angle) << ", radians: " << angle * PI / 180 << endl;
+
+		sf::Vector2f r = { radius, 0 };
+		sf::Vector2f secr = {screenSize.x/2 + ( r.x * cos(angle) - r.y * sin(angle) ),screenSize.y/2 + ( r.x * sin(angle) + r.y * cos(angle) ) };
+		current = secr, starting = secr, previous = secr;
 	}
 	float getDistanceFromPrevious() {
 		return distance(current, previous);
@@ -236,10 +245,16 @@ class KeyboardControl: public ControlManager {
 class Player : public LineManager, public PositionManager {
 	bool placesPath = true;
 	int size{};
-	int id;
+	int id{};
+	sf::Clock linerestart;
 public:
 	friend class MyRenderWindow;
 	Player(sf::Vector2f p = { 400, 400 }, int s = 5) : PositionManager(p), LineManager() {
+		size = s;
+		placesPath = true;
+		initiateLine();
+	}
+	Player(int radius = 300, int s = 5) : PositionManager(radius), LineManager() {
 		size = s;
 		placesPath = true;
 		initiateLine();
@@ -365,6 +380,25 @@ public:
 		*/
 	}
 
+	bool checkForCollision(Player* other) {
+		// check for collision with screen border, then
+		// check for collision with path
+		if (current.x > screenSize.x ||
+			current.x < 0 ||
+			current.y > screenSize.y ||
+			current.y < 0)
+		{
+			return true;
+		}
+		for (auto p = other->collisionPointMap.begin(); p < other->collisionPointMap.end(); ++p) {
+			if (distance(current, { p->first, p->second }) < size * 2) {
+				//collision occured
+				return true;
+			}
+		}
+		return false;
+	}
+
 	int randRGBv0 = rand() % 255;
 	int randRGBv1 = rand() % 255;
 	int randRGBv2 = rand() % 255;
@@ -375,16 +409,6 @@ public:
 		float angleFromPreviousPoint = getAngleFromPrevious();
 		Vector c1(size, angleFromPreviousPoint + 1 * PI / 6);
 		Vector c2(size, angleFromPreviousPoint - 1 * PI / 6);
-		
-		// for loop for (heh) generating random color from 0 to 255
-		// dunno how to assign number which will be constant through one whole gameplay
-		srand(time(NULL));
-		/*for (int i{}; i < 6; i++)
-		{
-			srand(time(NULL));
-			randRGBv[i] = rand() % 255;
-			cout << randRGBv[i];
-		}*/
 
 		// create a rectangle
 		sf::Vertex v1 = sf::Vertex(previous + c1.getDisplacement(), sf::Color(255, 255, 0, 255));
@@ -393,6 +417,8 @@ public:
 		sf::Vertex v4 = sf::Vertex(current + c2.getDisplacement(), sf::Color(randRGBv0, randRGBv1, randRGBv2, 255));
 		linesArray[getLineIndex()]->append(v3);
 		linesArray[getLineIndex()]->append(v4);
+		(std::chrono::milliseconds(5));
+
 		// create point in the center
 		sf::Vector2f mid = midpoint(v1.position, v4.position);
 		collisionPointQueue.push_back({ mid.x, mid.y });
@@ -418,7 +444,7 @@ public:
 	sf::Clock clock;
 	sf::Time timeSinceLastUpdate;
 	bool movable{};
-	NetworkPlayer(sf::TcpSocket& co) : Player(), c(co), ctrl() {
+	NetworkPlayer(sf::TcpSocket& co) : Player(300), c(co), ctrl() {
 		clock.restart(); // needed?
 		movable = true;
 	};
@@ -492,14 +518,16 @@ public:
 
 void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
-	
+	srand(time(NULL));
+
 	// initiate game clock
 	sf::Clock clock;
 	float elapsed = 0;
 
 	// initiate player and all that has to do with them
 	// doing linesArray stuff directly within player object breaks everything ; . ;
-	Player player({400, 400}, 2); //starting position, starting size
+	Player player(200, 2); //starting position, starting size
+	Player player2(200, 2);
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -508,7 +536,13 @@ void singleplayer(MyRenderWindow& window) {
 	//Make it all into a  game object
 	auto restart = [&]() {
 		player.restart();
+		player2.restart();
 	};
+
+	std::vector<Player*> players;
+	players.push_back(&player);
+	players.push_back(&player2);
+
 	std::vector<std::pair<float, float>>::iterator p;
 	auto debug = [&]() {
 		arrow->clear();
@@ -536,6 +570,7 @@ void singleplayer(MyRenderWindow& window) {
 
 	bool doDebug = false;
 	player.setSize(10);
+	player2.setSize(10);
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
@@ -555,6 +590,7 @@ void singleplayer(MyRenderWindow& window) {
 				// restart the game
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
 					player.restart();
+					player2.restart();
 				}
 				break;
 			};
@@ -575,22 +611,46 @@ void singleplayer(MyRenderWindow& window) {
 		if (keymap[sf::Keyboard::D]) {
 			player.changeAngle(0.00001 * elapsed);
 		}
+		if (keymap[sf::Keyboard::J]) {
+			player2.changeAngle(-0.00001 * elapsed);
+		}
+		if (keymap[sf::Keyboard::L]) {
+			player2.changeAngle(0.00001 * elapsed);
+		}
 		doDebug = keymap[sf::Keyboard::B];
-		player.setPlacesPath(!keymap[sf::Keyboard::Space]);
+		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
+
 		// Move player
 		// Do not touch without a commit. Memory safe, but very fragile;
-		player.moveBy(0.0003 * elapsed);
-		if (player.checkForCollision()) {
+		player.moveBy(0.0002 * elapsed);
+		player2.moveBy(0.0002 * elapsed);
+		/*
+		for gracz in gracze:
+			for graczz in gracze:
+				if gracz.checkcoll(graczz):
+					restart()
+		*/
+		bool ifFound = false;
+		for (Player* p : players) {
+			for (Player* q : players) {
+				if (p->checkForCollision(q)) {
+					restart();
+					ifFound = true;
+					continue;
+				}
+			}
+			if (ifFound == true) { continue; }
+		}
+		/*if (player.checkForCollision()) {
 			restart();
 			continue;
-		}
+		}*/
 		//draw stuff
+		if (ifFound == true) { continue; }
 		window.clear();
 
-		//sf::Texture texture1;
-		//texture1.loadFromFile("C:/Users/barti/OneDrive/Obrazy/jan.jpg");
-
 		window.draw(player);
+		window.draw(player2);
 		if(doDebug) debug();
 		window.display();
 		// increment game tick by a value modified by time between frames
@@ -609,14 +669,24 @@ enum class State {
 
 void menu(MyRenderWindow& window, State& s) {
 	ImGui::Begin("D");
+
+	// background tries
+	/*sf::RectangleShape background;
+	background.setSize(sf::Vector2f(400, 400));
+	sf::Texture maintexture;
+	maintexture.loadFromFile("CurveFever/Texture/gg.jpeg");
+	background.setTexture(&maintexture);*/
+
 	if (ImGui::Button("start")) {
 		s = State::singleplayer;
 	}
 	if (ImGui::Button("multiplayer")) {
 		s = State::multiplayerMenu;
 	}
-	ImGui::Text("Jebac Disa");
+	ImGui::Text("testest");
 	ImGui::End();
+
+	//window.draw(background);
 
 	window.clear();
 	ImGui::SFML::Render(window);
@@ -689,6 +759,22 @@ public:
 		p << t;
 		socket.send(p);
 	}
+	std::unique_ptr<std::thread> startThread;
+	void awaitMessage(std::string message, std::function<void()> callback) {
+		auto func = [&]() {
+			sf::Packet p;
+			while (true) {
+				socket.receive(p);
+				std::string procedure;
+				p >> procedure;
+				if (procedure == procedure) {
+					callback();
+					break;
+				}
+			}
+		};
+		startThread.reset(new std::thread(func));
+	}
 	//works on second attempt
 	bool start() {
 		sf::Packet p;
@@ -698,6 +784,7 @@ public:
 		sf::Packet p2;
 		sf::Clock c;
 		while (true) {
+			std::cout << "JDJD" << std::endl;
 			socket.receive(p2);
 			p2 >> t;
 			if (t == "START") {
@@ -773,44 +860,66 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 
 
 void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
-	Player player;
 	srand(time(NULL));
-	std::vector<Player*> players;
-	players.push_back(new Player({300, 300}, 8));
-	players.push_back(new Player({500, 500}, 8));
+	bool isRunning = true;
+	bool isStarted = false;
+	int playerCount = 0;
+	std::vector<std::shared_ptr<Player>> players;
+	auto processMovementFromString = [&](std::string serializedData) {
+		std::vector<std::string> playerData;
+		std::vector<std::string> playerMovement;
+		splitTo(serializedData, '|', playerData);
+		for (int i = 0; i < playerData.size(); i++) {
+			splitTo(playerData[i], ' ', playerMovement);
+			if (playerMovement.size() == 3) {
+				players[i]->setPlacesPath(playerMovement[0] == "1");
+				sf::Vector2f newPosition = {
+						(float)std::atof(playerMovement[1].c_str()),
+						(float)std::atof(playerMovement[2].c_str())
+				};
+				players[i]->moveTo(newPosition);
+			}
+		}
+	};
+	auto createPlayers = [&](std::string serializedData) {
+		std::vector<std::string> playerData;
+		std::vector<std::string> playerMovement;
+		splitTo(serializedData, '|', playerData);
+		for (int i = 0; i < playerData.size(); i++) {
+			splitTo(playerData[i], ' ', playerMovement);
+			if (playerMovement.size() == 3) {
+				bool pathState = playerMovement[0] == "1";
+				sf::Vector2f newPosition = {
+						(float)std::atof(playerMovement[1].c_str()),
+						(float)std::atof(playerMovement[2].c_str())
+				};
+				std::shared_ptr<Player> p = std::make_shared<Player>(newPosition, 8);
+				p->setPlacesPath(pathState);
+				players.push_back(p);
+			}
+		}
+	};
+
 	std::thread recvLoopThread([&]() {
-		while (true) {
+		while (isRunning) {
 			sf::Packet pac1;
 			net.getSocket().receive(pac1);
 			std::string procedure;
 			std::string stringifiedData;
 			pac1 >> procedure >> stringifiedData;
-			
-			if (procedure == "START") {
-				
-			}
-
 			if (procedure == "UPDATE") {
-				std::vector<std::string> playerData;
-				std::pair<std::string, std::string> playerPosition;
-				splitTo(stringifiedData, '|', playerData);
-				for (int i = 0; i < playerData.size(); i++) {
-					if (i < players.size()) {
-						playerPosition = splitOnceBy(playerData[i], ' ');
-						sf::Vector2f newPosition = {
-								(float)std::atof(playerPosition.first.c_str()),
-								(float)std::atof(playerPosition.second.c_str())
-						};
-						//std::cout << i << " ";
-						players[i]->moveTo(newPosition);
-					}
+				if (!isStarted) {
+					createPlayers(stringifiedData);
+					isStarted = true;
 				}
-				//std::cout << std::endl;
+				else {
+					processMovementFromString(stringifiedData);
+				}
 			}
 		}
 		});
 	std::thread sendLoopThread([&]() {
-		while (true) {
+		while (isRunning) {
 			sf::Packet pac2;
 			bool right = net.keymap[sf::Keyboard::A], left = net.keymap[sf::Keyboard::D], space = net.keymap[sf::Keyboard::Space];
 			std::string procedure = "UPDATE";
@@ -825,6 +934,7 @@ void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
 		while (window.pollEvent(event)) {
 			switch (event.type) {
 			case(sf::Event::Closed): {
+				isRunning = false;
 				window.close();
 			}
 			case(sf::Event::KeyPressed): {
@@ -843,9 +953,8 @@ void multiplayer(MyRenderWindow& window, State& s, networkClient& net) {
 		}
 		window.display();
 	}
-	for (auto x : players) {
-		delete x;
-	}
+	recvLoopThread.join();
+	sendLoopThread.join();
 }
 void multiplayerMenu(MyRenderWindow& window, State& s, networkClient& net) {
 	if (ImGui::Button("back")) {
@@ -853,9 +962,7 @@ void multiplayerMenu(MyRenderWindow& window, State& s, networkClient& net) {
 		net.disconnect();
 	}
 	if (ImGui::Button("start")) {
-		if (net.start()) {
-			s = State::multiplayer;
-		};
+		net.start();
 	}
 
 	if (ImGui::Button("join")) {
@@ -883,7 +990,6 @@ void multiplayerConnecting(MyRenderWindow& window, State& s, networkClient& net)
 	ImGui::SFML::Render(window);
 	window.display();
 }
-sf::Mutex globalMutex;
 
 bool compareHosts(sf::TcpSocket& c, sf::TcpSocket& s) {
 	return (c.getRemoteAddress() == s.getRemoteAddress() && c.getRemotePort() == s.getRemotePort());
@@ -896,7 +1002,8 @@ class Server2ndTry {
 	std::vector<std::shared_ptr<sf::TcpSocket>> sockets;
 	std::vector<std::shared_ptr<NetworkPlayer>> players;
 	sf::Clock clock;
-	bool started{};
+	bool started = false;
+	bool pathsStarted = false;
 	
 public:
 	void start() {
@@ -905,34 +1012,48 @@ public:
 		std::thread y([&]() {recvLoop();});
 		while (true) {}
 	}
-
+	std::string serializePlayerData() {
+		std::stringstream stream;
+		for (auto& player : players) {
+			stream << player->getPlacesPath();
+			stream << " ";
+			stream << std::fixed << player->getPosition().x;
+			stream << " ";
+			stream << std::fixed << player->getPosition().y;
+			stream << "|";
+		}
+		return stream.str();
+	}
 	void handleStart(sf::Packet& p, sf::TcpSocket& s) {
 		sf::Packet ps;
 		std::cout << "PLAYER CREATED FROM " << s.getRemoteAddress() << ":" << s.getRemotePort() << std::endl;
-		if (!started) {
-			ps << "START";
-			s.send(ps);
-			started = true;
+		if (started) {
+			return;
 		}
-		else {
-			ps << "START FAILED";
+		ps << "START";
+		std::string str = serializePlayerData();
+		cout << "STARTING" << str << endl;
+		ps << str;
+		started = true;
+		for (auto& player : players) {
+			player->c.send(ps);
 		}
-		for (auto player : players) {
-			sf::TcpSocket& so = player->c;
-			so.send(ps);
+		clock.restart();
+	}
+	void startPathsIf(bool conditions) {
+		if (!pathsStarted && conditions) {
+			cout << "PATH" << endl;
+			for (auto& player : players) {
+				player->setPlacesPath(true);
+			}
+			pathsStarted = true;
 		}
 	}
 	void handleUpdate(sf::Packet& p, sf::TcpSocket& s) {
 		std::cout << "UPDATE" << std::endl;
 		sf::Packet ps;
-		if (clock.getElapsedTime().asSeconds() > 2) {
-			cout << "PATH" << endl;
-			for (auto player : players) {
-
-				player->setPlacesPath(true);
-			}
-		}
-		for (std::shared_ptr<NetworkPlayer> player : players) {
+		startPathsIf(clock.getElapsedTime().asSeconds() > 2);
+		for (std::shared_ptr<NetworkPlayer>& player : players) {
 			sf::TcpSocket& c = player->c;
 			if (compareHosts(c, s)) {
 				for (std::shared_ptr<NetworkPlayer>& other : players) {
@@ -944,18 +1065,8 @@ public:
 			if(player->movable) 
 				player->processMovement(p);
 		}
-
-		std::stringstream stream;
-		std::string data;
-		for (auto player : players) {
-			stream << std::fixed << player->getPosition().x;
-			stream << " ";
-			stream << std::fixed << player->getPosition().y;
-			stream << "|";
-		}
-		data = stream.str();
 		ps << "UPDATE";
-		ps << data;
+		ps << serializePlayerData();
 		s.send(ps);
 	}
 	void handleJoin(sf::Packet& p, sf::TcpSocket& s) {
@@ -989,7 +1100,7 @@ public:
 		if (st == "UPDATE")
 			handleUpdate(p, s);
 		if (st == "JOIN")
-			handleUpdate(p, s);
+			handleJoin(p, s);
 	}
 
 	void acceptLoop() {
@@ -1003,7 +1114,6 @@ public:
 			if (listener.accept(*client) != sf::Socket::Done) {
 				std::cout << "CD" << std::endl;
 			}
-
 			socketMutex.lock();
 			sockets.push_back(client);
 			client->send(w, sizeof(w));
@@ -1056,11 +1166,11 @@ void client() {
 	window.setFramerateLimit(60);
 	ImGui::SFML::Init(window);
 	networkClient net;
-
 	/*
 		choice of game mode - single player, multi player
 	*/
 	State currentState = State::menu;
+	
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
@@ -1083,7 +1193,7 @@ void client() {
 			break;
 		}
 		case State::multiplayer: {
-			multiplayer(window, currentState, net);
+		    multiplayer(window, currentState, net);
 			break;
 		}
 		case State::multiplayerMenu: {
@@ -1103,13 +1213,17 @@ void client() {
 	ImGui::SFML::Shutdown();
 }
 
-int main(int argc, char* argv[]) {
+int main() {
+	srand(time(NULL));
+	char varstart;
 	// initiate window and globally used values
-	bool testServer = false;
-	std::cin >> testServer;
-	if (testServer) {
-		server2ndTry();
-		return 0;
+	cout << "Enter 'y': " << endl;
+	std::cin >> varstart;
+
+	if (varstart == 'y') {
+		client();
 	}
-	client();
+	else {
+		server2ndTry();
+	}
 }
