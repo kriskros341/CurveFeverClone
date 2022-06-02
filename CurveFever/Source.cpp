@@ -311,6 +311,26 @@ public:
 		}
 		return false;
 	}
+
+
+	bool checkForCollision(Player& other) {
+		// check for collision with screen border, then
+		// check for collision with path
+		if (current.x > screenSize.x ||
+			current.x < 0 ||
+			current.y > screenSize.y ||
+			current.y < 0)
+		{
+			return true;
+		}
+		for (std::pair<float, float> point : other.collisionPointMap) {
+			if (distance(current, {point.first, point.second}) < size * 2) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void updateCollisionQueue() {
 		std::vector<std::pair<float, float>>::iterator queuedPoint = collisionPointQueue.begin();
 		for (; queuedPoint != collisionPointQueue.end();) {
@@ -324,7 +344,7 @@ public:
 				queuedPoint++;
 			};
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		/*
 		
 		const auto pred = [&](std::pair<float, float>& queuedPoint) {
@@ -393,25 +413,23 @@ public:
 
 class NetworkPlayer : public Player {
 public:
-	sf::TcpSocket*& c;
+	sf::TcpSocket& c;
 	ControlSignals ctrl;
 	sf::Clock clock;
 	sf::Time timeSinceLastUpdate;
 	bool movable{};
-	NetworkPlayer(sf::TcpSocket*&co) : Player(), c(co), ctrl() {
+	NetworkPlayer(sf::TcpSocket& co) : Player(), c(co), ctrl() {
 		clock.restart(); // needed?
 		movable = true;
 	};
 
-	bool processMovement(sf::Packet& p) {
+	void processMovement(sf::Packet& p) {
 		timeSinceLastUpdate = clock.restart();
 		bool left, right, space;
 		p >> left >> right >> space;
 		changeAngle(-1 * left * 0.003 * timeSinceLastUpdate.asMilliseconds());
 		changeAngle(1 * right * 0.003 * timeSinceLastUpdate.asMilliseconds());
 		moveBy(0.05 * timeSinceLastUpdate.asMilliseconds());
-		return checkForCollision();
-		
 	}
 };
 
@@ -867,90 +885,119 @@ void multiplayerConnecting(MyRenderWindow& window, State& s, networkClient& net)
 }
 sf::Mutex globalMutex;
 
+bool compareHosts(sf::TcpSocket& c, sf::TcpSocket& s) {
+	return (c.getRemoteAddress() == s.getRemoteAddress() && c.getRemotePort() == s.getRemotePort());
+}
+
 class Server2ndTry {
 	sf::TcpListener listener;
 	sf::SocketSelector selector;
 	std::mutex socketMutex;
-	std::vector<sf::TcpSocket*> sockets;
-	std::vector<NetworkPlayer*> players;
+	std::vector<std::shared_ptr<sf::TcpSocket>> sockets;
+	std::vector<std::shared_ptr<NetworkPlayer>> players;
 	sf::Clock clock;
 	bool started{};
+	
 public:
 	void start() {
+		clock.restart();
 		std::thread t([&]() {acceptLoop();});
 		std::thread y([&]() {recvLoop();});
 		while (true) {}
 	}
 
-	void parseRecieved(sf::Packet& p, sf::TcpSocket*& s) {
-		std::string st;
-		p >> st;
-		if (st == "START") {
-			sf::Packet ps;
-			std::cout << "PLAYER CREATED FROM " << s->getRemoteAddress() << ":" << s->getRemotePort() << std::endl;
-			if (!started) {
-				ps << "START";
-				s->send(ps);
-				started = true;
-			}
-			else {
-				ps << "START FAILED";
-			}
-			for (auto player : players) {
-				player->c->send(ps);
-			}
+	void handleStart(sf::Packet& p, sf::TcpSocket& s) {
+		sf::Packet ps;
+		std::cout << "PLAYER CREATED FROM " << s.getRemoteAddress() << ":" << s.getRemotePort() << std::endl;
+		if (!started) {
+			ps << "START";
+			s.send(ps);
+			started = true;
 		}
-		if (st == "UPDATE") {
-			std::cout << "UPDATE" << std::endl;
-			sf::Packet ps;
-			for (auto player : players) {
-				if (player->c == s) {
-					if (player->movable && player->processMovement(p)) {
-						player->movable = false;
-					};
-				}
-			}
-
-			std::stringstream stream;
-			std::string data;
-			for (auto player : players) {
-				stream << std::fixed << player->getPosition().x;
-				stream << " ";
-				stream << std::fixed << player->getPosition().y;
-				stream << "|";
-			}
-			data = stream.str();
-			ps << "UPDATE";
-			ps << data;
-			s->send(ps);
+		else {
+			ps << "START FAILED";
 		}
-		if (st == "JOIN") {
-			sf::Packet ps;
-			std::cout << "JOIN" << std::endl;
-			bool found{};
-			for (auto player : players) {
-				if (player->c == s) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				NetworkPlayer* c = new NetworkPlayer(s);
-				players.push_back(c);
-				ps << "JOIN";
-				s->send(ps);
-				return;
-			}
-			ps << "JOIN FAILED";
-			s->send(ps);
+		for (auto player : players) {
+			sf::TcpSocket& so = player->c;
+			so.send(ps);
 		}
 	}
+	void handleUpdate(sf::Packet& p, sf::TcpSocket& s) {
+		std::cout << "UPDATE" << std::endl;
+		sf::Packet ps;
+		if (clock.getElapsedTime().asSeconds() > 2) {
+			cout << "PATH" << endl;
+			for (auto player : players) {
+
+				player->setPlacesPath(true);
+			}
+		}
+		for (std::shared_ptr<NetworkPlayer> player : players) {
+			sf::TcpSocket& c = player->c;
+			if (compareHosts(c, s)) {
+				for (std::shared_ptr<NetworkPlayer>& other : players) {
+					if (player->movable && player->checkForCollision()) {
+						player->movable = false;
+					}
+				}
+			}
+			if(player->movable) 
+				player->processMovement(p);
+		}
+
+		std::stringstream stream;
+		std::string data;
+		for (auto player : players) {
+			stream << std::fixed << player->getPosition().x;
+			stream << " ";
+			stream << std::fixed << player->getPosition().y;
+			stream << "|";
+		}
+		data = stream.str();
+		ps << "UPDATE";
+		ps << data;
+		s.send(ps);
+	}
+	void handleJoin(sf::Packet& p, sf::TcpSocket& s) {
+		sf::Packet ps;
+		std::cout << "JOIN" << std::endl;
+		bool found{};
+		for (auto player : players) {
+			sf::TcpSocket& c = player->c;
+			if (compareHosts(c, s)) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			std::shared_ptr<NetworkPlayer> p = std::make_shared<NetworkPlayer>(s);
+			p->setPlacesPath(false);
+			players.push_back(p);
+			ps << "JOIN";
+			s.send(ps);
+			return;
+		}
+		ps << "JOIN FAILED";
+		s.send(ps);
+	}
+
+	void parseRecieved(sf::Packet& p, sf::TcpSocket& s) {
+		std::string st;
+		p >> st;
+		if (st == "START")
+			handleStart(p, s);
+		if (st == "UPDATE")
+			handleUpdate(p, s);
+		if (st == "JOIN")
+			handleUpdate(p, s);
+	}
+
 	void acceptLoop() {
 		while (true) {
 			if (listener.listen(53000) != sf::Socket::Done) {
 				std::cout << "JD" << std::endl;
 			}
-			sf::TcpSocket* client = new sf::TcpSocket();
+			std::shared_ptr<sf::TcpSocket> client = std::make_shared<sf::TcpSocket>();
 
 			char w[] = "welcome";
 			if (listener.accept(*client) != sf::Socket::Done) {
@@ -968,7 +1015,7 @@ public:
 	void recvLoop() {
 		while (true) {
 			if (selector.wait(sf::seconds(10.f))) {
-				for (auto iter = sockets.begin(); iter != sockets.end();) {
+				for (std::vector<std::shared_ptr<sf::TcpSocket>>::iterator iter = sockets.begin(); iter != sockets.end();) {
 					socketMutex.lock();
 					sf::TcpSocket& soc = **iter;
 					if (selector.isReady(soc)) {
@@ -982,30 +1029,19 @@ public:
 							//delete *a;
 						}	
 						else {
-							parseRecieved(p, *iter);
+							parseRecieved(p, soc);
 							iter++;
 						};
 					}
-					else {
+					else
 						iter++;
-					}
 					socketMutex.unlock();
 					}
 				}
-			 else {
+			 else
 				std::cout << "timeout" << std::endl;
-			}
 		}
 	};
-	~Server2ndTry() {
-		for (auto x : players) {
-			delete x;
-		}
-
-		for (auto x : sockets) {
-			delete x;
-		}
-	}
 };
 
 void server2ndTry() {
@@ -1069,16 +1105,11 @@ void client() {
 
 int main(int argc, char* argv[]) {
 	// initiate window and globally used values
-	bool testServer = true;
-	if (argc > 1) {
-		if ((int)(char)argv[1][0] == (int)'h') {
-			testServer = !testServer;
-		}
-	}
+	bool testServer = false;
+	std::cin >> testServer;
 	if (testServer) {
 		server2ndTry();
+		return 0;
 	}
-	else {
-		client();
-	}
+	client();
 }
