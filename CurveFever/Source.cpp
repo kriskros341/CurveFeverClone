@@ -440,6 +440,22 @@ public:
 	}
 };
 
+class BackgroundImage {
+public:
+	std::string pngname;
+	sf::Vector2u scrres;
+	sf::Texture imag;
+	sf::Sprite sprit;
+
+	BackgroundImage(std::string pngname = "Texture/gg.jpg") {
+		imag.loadFromFile(pngname);
+		scrres = imag.getSize();
+		sprit.setTexture(imag);
+		sprit.setScale(sf::Vector2f(screenSize.x / (float)scrres.x, screenSize.x / (float)scrres.y));
+	};
+	~BackgroundImage() {};
+};
+
 class MyRenderWindow : public sf::RenderWindow {
 public:
 	sf::Clock guiClock;
@@ -449,7 +465,7 @@ public:
 	}
 	void draw(Player& p) {
 		sf::CircleShape playerDot;
-		playerDot = sf::CircleShape(p.size, 10);
+		playerDot = sf::CircleShape(p.size, 10); //size jest w klasie Player, w ramach której jest tworzony obiekt z referencj¹ "p", mu s¹ przypisywane rzeczy
 		playerDot.setOrigin(p.size, p.size);
 		playerDot.setPosition(p.getPosition());
 		sf::RenderWindow::draw(playerDot);
@@ -457,6 +473,9 @@ public:
 		for (auto l = p.linesArray.begin(); l != p.linesArray.end(); ++l) {
 			sf::RenderWindow::draw(**l);
 		}
+	}
+	void draw(BackgroundImage& bcg) { //w ramach klasy BackgroundImage tworzony jest obiekt bcg, 
+		sf::RenderWindow::draw(bcg.sprit); //on jest referencj¹!
 	}
 	void draw(sf::Shape& s) {
 		sf::RenderWindow::draw(s);
@@ -648,15 +667,8 @@ enum class State {
 	multiplayer
 };
 
-void menu(MyRenderWindow& window, State& s) {
+void menu(MyRenderWindow& window, State& s, BackgroundImage& bcgg) {
 	ImGui::Begin("D");
-
-	// background tries
-	/*sf::RectangleShape background;
-	background.setSize(sf::Vector2f(400, 400));
-	sf::Texture maintexture;
-	maintexture.loadFromFile("CurveFever/Texture/gg.jpeg");
-	background.setTexture(&maintexture);*/
 
 	if (ImGui::Button("start")) {
 		s = State::singleplayer;
@@ -667,9 +679,8 @@ void menu(MyRenderWindow& window, State& s) {
 	ImGui::Text("testest");
 	ImGui::End();
 
-	//window.draw(background);
-
 	window.clear();
+	window.draw(bcgg);
 	ImGui::SFML::Render(window);
 	window.display();
 }
@@ -1089,6 +1100,7 @@ void client() {
 	window.setFramerateLimit(60);
 	ImGui::SFML::Init(window);
 	networkClient net;
+	BackgroundImage bcgg;
 
 	/*
 		choice of game mode - single player, multi player
@@ -1108,7 +1120,7 @@ void client() {
 		ImGui::SFML::Update(window, window.guiClock.restart());
 		switch (currentState) {
 		case State::menu: {
-			menu(window, currentState);
+			menu(window, currentState, bcgg);
 			break;
 		};
 		case State::singleplayer: {
