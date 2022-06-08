@@ -1,7 +1,19 @@
-﻿  Network.cpp
+﻿  Source.cpp
 C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\headers\Player.h(28,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
 C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\headers\Player.h(92,56): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(15,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(16,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(17,14): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(16,24): warning C4091: 'extern ': ignored on left of 'State' when no variable is declared
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(54,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(90,54): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(92,70): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(92,48): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(139,43): warning C4244: '=': conversion from 'sf::Int64' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(142,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(145,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(148,33): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(151,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(155,24): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(156,25): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(265,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(454,31): warning C4244: '=': conversion from 'double' to 'unsigned int', possible loss of data
+C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\Source.cpp(502,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
   CurveFever.vcxproj -> C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\x64\Debug\CurveFever.exe

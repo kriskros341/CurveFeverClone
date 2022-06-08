@@ -190,6 +190,9 @@ void menu(MyRenderWindow& window, std::atomic<State>& s, BackgroundImage& bcgg) 
 	if (ImGui::Button("multiplayer")) {
 		s = State::multiplayerMenu;
 	}
+	if (ImGui::Button("host")) {
+		s = State::serverHost;
+	}
 	ImGui::Text("testest");
 	ImGui::End();
 
@@ -209,16 +212,6 @@ void emptyFn() {};
 
 
 
-// length of the string lol
-int len(std::string str)
-{
-	int length = 0;
-	for (int i = 0; str[i] != '\0'; i++)
-	{
-		length++;
-	}
-	return length;
-}
 /*
 	<b>Clears</b> the vector and fills it with sliced string
 */
@@ -227,9 +220,9 @@ void splitTo(std::string str, const char seperator, std::vector<std::string>& co
 	cont.clear();
 	int currIndex = 0, i = 0;
 	int startIndex = 0, endIndex = 0;
-	while (i <= len(str))
+	while (i <= str.size())
 	{
-		if (str[i] == seperator || i == len(str))
+		if (str[i] == seperator || i == str.size())
 		{
 			endIndex = i;
 			std::string subStr = "";
@@ -248,9 +241,9 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 	int currIndex = 0, i = 0;
 	int startIndex = 0, endIndex = 0;
 	std::pair<std::string, std::string> result;
-	while (i <= len(str))
+	while (i <= str.size())
 	{
-		if (str[i] == seperator || i == len(str))
+		if (str[i] == seperator || i == str.size())
 		{
 			endIndex = i;
 			std::string subStr = "";
@@ -367,6 +360,10 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 	sendLoopThread.join();
 }
 void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
+	static char address[300]{};
+	ImGui::InputText("Ip Address", address, sizeof(address));
+	net.ip = sf::IpAddress(address);
+	static int connectionState = 0;
 	if (ImGui::Button("back")) {
 		s = State::menu;
 		net.disconnect();
@@ -374,15 +371,30 @@ void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClien
 	if (ImGui::Button("start")) {
 		net.start();
 	}
-
-	if (ImGui::Button("join")) {
-		net.join(s);
+	switch (connectionState) {
+	case 0: {
+		if (ImGui::Button("Connect")) {
+			std::cout << "attempting to connect to " << net.ip << " at " << net.port << std::endl;
+			net.connect();
+		}
+		if (net.isWorking()) {
+			connectionState = 1;
+		}
+		break;
 	}
-
-	if (ImGui::Button("test")) {
-		net.test();
+	case 1: {
+		if (ImGui::Button("join")) {
+			net.join(s);
+			connectionState = 2;
+		}
+		break;
 	}
-
+	case 2:
+		if (ImGui::Button("Leave")) {
+			net.disconnect();
+			connectionState = 0;
+		}
+	}
 	window.clear();
 	ImGui::SFML::Render(window);
 	window.display();
@@ -402,11 +414,40 @@ void multiplayerConnecting(MyRenderWindow& window, std::atomic<State>& s, networ
 }
 
 
-
-void server2ndTry() {
-	Server2ndTry s;
-	s.start();
+void server2ndTry(MyRenderWindow& window, std::atomic<State>& gameState) {
+	static std::unique_ptr<Server2ndTry> s = std::make_unique<Server2ndTry>();
+	static std::string publicIpAddress = sf::IpAddress::getPublicAddress(sf::seconds(5.0f)).toString();
+	static std::thread serverThread;
+	std::string localIpAddress = sf::IpAddress::getLocalAddress().toString();
+	int port = std::atoi(defaultPort.c_str());
+	std::stringstream text;
+	text << "awaiting messages at " << publicIpAddress << " publicly and " << localIpAddress << " Locally at " << port;
+	std::string debugMessage = text.str();
+	
+	ImGui::Begin("tototototottototojesttest");
+	bool isRunning = s->getRunning();
+		if (isRunning) {
+			ImGui::Text(debugMessage.c_str());
+			if (ImGui::Button("stop")) {
+				s->stopServer();
+				serverThread.join();
+			}
+			ImGui::Text("Make sure your firewall doesn't block the communication and that ports are open");
+		}
+		else {
+			if (ImGui::Button("back")) {
+				gameState = State::menu;
+			}
+			if (ImGui::Button("start")) {
+				serverThread = std::thread{ []() {s->start();} };
+			}
+		}
+	ImGui::End();
+	window.clear();
+	ImGui::SFML::Render(window);
+	window.display();
 }
+
 
 void client() {
 	sf::ContextSettings settings;
@@ -445,15 +486,11 @@ void client() {
 			break;
 		}
 		case State::multiplayerMenu: {
-			if (!net.isWorking()) {
-				net.connect();
-			}
-			if (net.getConnected()) {
-				multiplayerMenu(window, currentState, net);
-			}
-			else {
-				multiplayerConnecting(window, currentState, net);
-			}
+			multiplayerMenu(window, currentState, net);
+			break;
+		}
+		case State::serverHost: {
+			server2ndTry(window, currentState);
 			break;
 		}
 		}
@@ -463,14 +500,5 @@ void client() {
 
 int main() {
 	srand(time(NULL));
-	char varstart;
-	cout << "Enter 'y': " << endl;
-	std::cin >> varstart;
-
-	if (varstart == 'y') {
-		client();
-	}
-	else {
-		server2ndTry();
-	}
+	client();
 }
