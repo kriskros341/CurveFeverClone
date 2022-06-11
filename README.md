@@ -21,7 +21,7 @@ Original game [CurveFeverPro](https://curvefever.pro/)
 
 ## How to setup?
 
-To setup the game on your device you need to clone this repository and ImGui and SFML in project properties. You can find brief description of how to do it in these videos:
+To setup the game on your device you need to clone this repository and add both ImGui and SFML in project properties. You can find brief description on how to do this in these videos:
 * [ImGui](https://www.youtube.com/watch?v=2YS5WJTeKpI)
 * [SFML](https://www.youtube.com/watch?v=neIoDQ71yb0)
 
