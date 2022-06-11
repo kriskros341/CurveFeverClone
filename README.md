@@ -18,3 +18,20 @@ Original game [CurveFeverPro](https://curvefever.pro/)
 * Players movement: When line navigation by keyboard keys occurs, there is an angle in which the line curves. The line itself is a vector and we change its sense. Value of the angle is incremented every moment we press key or hold it.
 * Collision between player and edge: Functions *checkForCllision* and *updateCollisionQueue* iterate while the game occurs, when the distance is too short to the edges of the window first of them return information which is then captured by other functions in order to restart the game. They count the distance using pointers.
 * Collision between players: There is a vector array of pointers with atributes from *Player* class and for loop with another for loop inside it, checking through whole gameplay if any collision occured between *p* and *q* points in above-mentioned array.
+
+## How to setup?
+
+To setup the game on your device you need to clone this repository and ImGui and SFML in project properties. You can find brief description of how to do it in these videos:
+* [ImGui](https://www.youtube.com/watch?v=2YS5WJTeKpI)
+* [SFML](https://www.youtube.com/watch?v=neIoDQ71yb0)
+
+## How to play?
+
+### Local multiplayer
+
+To open the game you need to compile the project, then you need to write "y" in the terminal that would pop out. When game menu is visible, click "Local multiplayer" button, after that the gameplay begins. Both players can change the direction of their lines by changing angle using keyboard keys:
+* First player uses **A** to turn left and **D** to turn right
+* Second player uses **J** to turn left and **L** to turn right
+You can change these keys inside the code.
+
+### Server multiplayer
