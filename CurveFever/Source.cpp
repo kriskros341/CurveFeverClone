@@ -8,6 +8,9 @@
 #include "imgui/imgui-SFML.h"
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
+#include "sources/Player.cpp"
+#include "sources/Window.cpp"
+#include "sources/Network.cpp"
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
@@ -152,8 +155,8 @@ void singleplayer(MyRenderWindow& window) {
 		}
 		doDebug = keymap[sf::Keyboard::B];
 		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
-		player.moveBy(0.0002 * elapsed);
-		player2.moveBy(0.0002 * elapsed);
+		player.moveBy(0.00015 * elapsed);
+		player2.moveBy(0.00015 * elapsed);
 		bool ifFound = false;
 		for (Player* p : players) {
 			for (Player* q : players) {
@@ -182,15 +185,28 @@ void singleplayer(MyRenderWindow& window) {
 
 
 void menu(MyRenderWindow& window, std::atomic<State>& s, BackgroundImage& bcgg) {
-	ImGui::Begin("D");
+	ImGui::Begin("Menu");
+	ImGuiStyle* style = &ImGui::GetStyle();
 
-	if (ImGui::Button("start")) {
+	style->WindowBorderSize = 0;
+	style->WindowTitleAlign = ImVec2(0.5, 0.5);
+	style->WindowMinSize = ImVec2(300, 300);
+	style->Colors[ImGuiCol_TitleBg] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgActive] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgCollapsed] = ImColor(0, 0, 0, 200);
+
+	style->Colors[ImGuiCol_Button] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonActive] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonHovered] = ImColor(41, 40, 41, 255);
+
+	ImGui::Spacing();
+	if (ImGui::Button("Local multiplayer", ImVec2(300, 50))) {
 		s = State::singleplayer;
 	}
-	if (ImGui::Button("multiplayer")) {
+	ImGui::Spacing();
+	if (ImGui::Button("Server multiplayer", ImVec2(300, 50))) {
 		s = State::multiplayerMenu;
 	}
-	ImGui::Text("testest");
 	ImGui::End();
 
 	window.clear();
@@ -367,19 +383,21 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 	sendLoopThread.join();
 }
 void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
-	if (ImGui::Button("back")) {
+	ImGui::Spacing();
+	if (ImGui::Button("back", ImVec2(300, 50))) {
 		s = State::menu;
 		net.disconnect();
 	}
-	if (ImGui::Button("start")) {
+	ImGui::Spacing();
+	if (ImGui::Button("start", ImVec2(300, 50))) {
 		net.start();
 	}
-
-	if (ImGui::Button("join")) {
+	ImGui::Spacing();
+	if (ImGui::Button("join", ImVec2(300, 50))) {
 		net.join(s);
 	}
-
-	if (ImGui::Button("test")) {
+	ImGui::Spacing();
+	if (ImGui::Button("test", ImVec2(300, 50))) {
 		net.test();
 	}
 
@@ -411,7 +429,7 @@ void server2ndTry() {
 void client() {
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 20.0;
-	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
+	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "CurveFeverAlike", settings);
 	window.setFramerateLimit(60);
 	ImGui::SFML::Init(window);
 	networkClient net;

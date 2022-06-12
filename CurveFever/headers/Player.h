@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <thread>
 #define PI std::acos(0) * 2
 const sf::Vector2u screenSize(1000, 1000);
 

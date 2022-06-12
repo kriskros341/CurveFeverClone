@@ -1,7 +1,32 @@
-﻿  Network.cpp
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\headers\Player.h(28,18): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\headers\Player.h(92,56): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(15,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(16,32): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\CurveFever\sources\Network.cpp(17,14): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-  CurveFever.vcxproj -> C:\Users\TrybSkupienia\Desktop\theGame\CurveFever\CurveFever\x64\Debug\CurveFever.exe
+﻿  Source.cpp
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\headers\Player.h(29,18): warning C4244: "=": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\headers\Player.h(93,56): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(23,65): warning C4244: "return": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(173,41): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(173,12): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(174,41): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(174,12): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(187,41): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(187,12): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(188,41): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Player.cpp(188,12): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Window.cpp(5,10): warning C4244: "inicjowanie": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Network.cpp(15,32): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Network.cpp(16,32): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\sources\Network.cpp(17,14): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(19,24): warning C4091: "extern ": zignorowano na lewo od "State" podczas gdy brak deklaracji zmiennej
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(57,12): warning C4244: "argument": konwersja z "time_t" do "unsigned int", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(93,54): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(95,70): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(95,48): warning C4244: "argument": konwersja z "int" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(142,43): warning C4244: "=": konwersja z "sf::Int64" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(145,32): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(148,31): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(151,33): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(154,32): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(158,25): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(159,26): warning C4244: "argument": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(288,12): warning C4244: "argument": konwersja z "time_t" do "unsigned int", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(431,31): warning C4244: "=": konwersja z "double" do "unsigned int", możliwa utrata danych
+C:\Users\barti\Documents\CurveFeverClone\CurveFever\Source.cpp(483,12): warning C4244: "argument": konwersja z "time_t" do "unsigned int", możliwa utrata danych
+  CurveFever.vcxproj -> C:\Users\barti\Documents\CurveFeverClone\x64\Debug\CurveFever.exe

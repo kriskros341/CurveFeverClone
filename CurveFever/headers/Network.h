@@ -52,7 +52,7 @@ public:
 	std::map<sf::Keyboard::Key, bool> keymap;
 	networkClient() {
 		//ip = sf::IpAddress::getLocalAddress();
-		ip = sf::IpAddress("83.26.49.174")
+		ip = sf::IpAddress("83.26.49.174");
 	}
 	bool getConnected();	
 	bool getConnecting();	
