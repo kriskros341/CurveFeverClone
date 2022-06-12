@@ -100,12 +100,6 @@ void Player::setPlacesPath(bool v) {
 bool Player::getPlacesPath() {
 	return placesPath;
 };
-// restart game
-void Player::restart() {
-	PositionManager::restart();
-	LineManager::restart();
-	placesPath = true;
-}
 // Get size of player
 int Player::getSize() {
 	return size;

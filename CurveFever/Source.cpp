@@ -260,6 +260,7 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 	return result;
 }
 
+std::mutex tempMut;
 
 void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
 	srand(time(NULL));
@@ -269,6 +270,7 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 	auto processMovementFromString = [&](std::string serializedData) {
 		std::vector<std::string> playerData;
 		splitTo(serializedData, '|', playerData);
+		tempMut.lock();
 		for (int i = 0; i < playerData.size(); i++) {
 			std::vector<std::string> playerMovement;
 			splitTo(playerData[i], ' ', playerMovement);
@@ -281,11 +283,13 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				players[i]->moveTo(newPosition);
 			}
 		}
+		tempMut.unlock();
 	};
 	auto createPlayers = [&](std::string serializedData) {
 		std::vector<std::string> playerData;
 		std::vector<std::string> playerMovement;
 		splitTo(serializedData, '|', playerData);
+		tempMut.lock();
 		for (int i = 0; i < playerData.size(); i++) {
 			splitTo(playerData[i], ' ', playerMovement);
 			//There is a white space at the end of every serialized string...
@@ -301,6 +305,7 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				players.push_back(p);
 			}
 		}
+		tempMut.unlock();
 	};
 
 	std::thread recvLoopThread([&]() {
@@ -318,6 +323,31 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				else {
 					processMovementFromString(stringifiedData);
 				}
+			}
+			if (procedure == "SCORE") {
+				std::vector<std::string> scores;
+				std::cout << stringifiedData;
+			}
+			if (procedure == "RESTART") {
+				std::vector<std::string> playerData;
+				splitTo(stringifiedData, '|', playerData);
+				std::cout << stringifiedData << " " << playerData.size() << std::endl;;
+				tempMut.lock();
+				for (int i = 0; i < playerData.size(); i++) {
+					players[i]->restart();
+					std::vector<std::string> playerMovement;
+					splitTo(playerData[i], ' ', playerMovement);
+					
+					if (playerMovement.size() >= 3) {
+						players[i]->setPlacesPath(playerMovement[0] == "1");
+						sf::Vector2f newPosition = {
+								(float)std::atof(playerMovement[1].c_str()),
+								(float)std::atof(playerMovement[2].c_str())
+						};
+						players[i]->moveTo(newPosition);
+					}
+				}
+				tempMut.unlock();
 			}
 		}
 		});
@@ -368,9 +398,6 @@ void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClien
 		s = State::menu;
 		net.disconnect();
 	}
-	if (ImGui::Button("start")) {
-		net.start();
-	}
 	switch (connectionState) {
 	case 0: {
 		if (ImGui::Button("Connect")) {
@@ -390,6 +417,9 @@ void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClien
 		break;
 	}
 	case 2:
+		if (ImGui::Button("start")) {
+			net.start();
+		}
 		if (ImGui::Button("Leave")) {
 			net.disconnect();
 			connectionState = 0;
@@ -430,16 +460,15 @@ void server2ndTry(MyRenderWindow& window, std::atomic<State>& gameState) {
 			ImGui::Text(debugMessage.c_str());
 			if (ImGui::Button("stop")) {
 				s->stopServer();
-				serverThread.join();
 			}
-			ImGui::Text("Make sure your firewall doesn't block the communication and that ports are open");
+			ImGui::Text("Make sure your firewall doesn't block the communication and that port is open");
 		}
 		else {
 			if (ImGui::Button("back")) {
 				gameState = State::menu;
 			}
 			if (ImGui::Button("start")) {
-				serverThread = std::thread{ []() {s->start();} };
+				s->start();
 			}
 		}
 	ImGui::End();

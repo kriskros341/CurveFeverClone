@@ -20,17 +20,21 @@ class PositionManager {
 	sf::Vector2f current;
 	sf::Vector2f previous;
 	sf::Vector2f starting;
+	float startingDistance{};
 	friend class Player;
 public:
 	PositionManager(sf::Vector2f p) : current(p), starting(p), previous(p) {}
 	void restart();
-	PositionManager(float radius = 300) {
+	void pickNewPosition(float radius) {
 		angle = rand() % 360;
-		std::cout << std::cos(angle) << ", " << std::sin(angle) << ", radians: " << angle * PI / 180 << std::endl;
-
 		sf::Vector2f r = { radius, 0 };
 		sf::Vector2f secr = { screenSize.x / 2 + (r.x * cos(angle) - r.y * sin(angle)),screenSize.y / 2 + (r.x * sin(angle) + r.y * cos(angle)) };
 		current = secr, starting = secr, previous = secr;
+	}
+	PositionManager(float radius = 300) : startingDistance(radius) {
+		//std::cout << std::cos(angle) << ", " << std::sin(angle) << ", radians: " << angle * PI / 180 << std::endl;
+		pickNewPosition(startingDistance);
+		
 	}
 	float getDistanceFromPrevious();
 	float getAngleFromPrevious();
@@ -70,6 +74,42 @@ public:
 	}
 };
 
+class ScoreManager {
+	int startingScore = 0;
+	std::vector<int> scoreBoard;
+	int round = 0;
+public:
+	ScoreManager() {
+		scoreBoard.push_back(startingScore);
+	}
+	void nextRound() {
+		scoreBoard.push_back(startingScore);
+		round += 1;
+	}
+	int getCurrentScore() {
+		return scoreBoard[round];
+	}
+	int getScore() {
+		int result{};
+		for (auto x : scoreBoard) {
+			result += x;
+		}
+		return result;
+	}
+	void addScore() {
+		scoreBoard[round] += 1;
+	
+	}
+	void restart() {
+		scoreBoard.clear();
+		scoreBoard.emplace_back(startingScore);
+		round = 0;
+	}
+	void addScore(int add) {
+		scoreBoard[round] += add;
+	}
+};
+
 enum class Inputs {
 	Left = 1,
 	Right = 2,
@@ -83,6 +123,7 @@ class Player : public LineManager, public PositionManager {
 	sf::Clock linerestart;
 	LineModes lineMode = LineModes::both;
 public:
+	ScoreManager score;
 	friend class MyRenderWindow;
 	Player(sf::Vector2f p = { 400, 400 }, int s = 5) : PositionManager(p), LineManager() {
 		size = s;
@@ -93,6 +134,19 @@ public:
 		size = s;
 		placesPath = true;
 		initiateLine();
+	}
+	void restart(sf::Vector2f newPos) {
+		restart();
+		setPosition(newPos);
+	}
+	// restart game
+	void restart() {
+		placesPath = false;
+		LineManager::restart();
+		PositionManager::restart();
+		score.restart();
+		placesPath = true;
+		linerestart.restart();
 	}
 	void setLineMode(LineModes newMode);
 	int getId();	
@@ -106,8 +160,6 @@ public:
 	void setPlacesPath(bool v);
 	// Get whether player places path
 	bool getPlacesPath();
-	// restart game
-	void restart();	
 	// Get size of player
 	int getSize();	
 	// Set size of player

@@ -38,6 +38,11 @@ public:
 		clock.restart();
 		movable = true;
 	};
+	void restart() {
+		movable = true;
+		clock.restart();
+		Player::restart();
+	}
 	void processMovement(sf::Packet& p);
 };
 
@@ -88,8 +93,51 @@ class Server2ndTry {
 	bool started = false;
 	bool pathsStarted = false;
 	std::atomic<bool> isRunning;
+	std::thread loops;
+	
+	int currentRound = 0, roundLimit = 5;
+	void startNewRound() {
+		pathsStarted = false;
+		clock.restart();
+		sf::Packet message;
+		std::stringstream stream;
+		message << "RESTART";
+		for (auto& p : players) {
+			p->score.nextRound();
+			p->restart();
+			p->movable = true;
+			p->setPlacesPath(false);
+		}
+		for (auto& p : players) {
+			stream << p->getPosition().x << " " << p->getPosition().y << " " << p->movable << "|";
+		}
+		std::string temp = stream.str();
+		temp.pop_back(); // removing the last |
+		message << temp;
+		for (auto& p : players) {
+			p->socket.send(message);
+		}
+		
+	}
+	void endGame() {
+		sf::Packet message;
+		std::stringstream stream;
+		message << "SCORE";
+		for (auto& p : players) {
+			stream << p->score.getScore() << "|";
+		}
+
+		std::string temp = stream.str();
+		temp.pop_back();
+		message << temp;
+		for (auto& p : players) {
+			p->socket.send(message);
+		}
+
+	}
 public:
 	void start();
+	bool isVictoryConditionMet();
 	std::string serializePlayerData();
 	void handleStart(sf::Packet& p, sf::TcpSocket& s);
 	void startPathsIf(bool conditions);
@@ -99,6 +147,7 @@ public:
 	void parseRecieved(sf::Packet& incomingMessage, sf::TcpSocket& socket);
 	void acceptLoop();
 	void restart();
+	void restartRound();
 	void recvLoop();
 	void stopServer();
 	void setRunning(bool newState) {

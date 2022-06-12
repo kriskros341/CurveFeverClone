@@ -90,7 +90,6 @@ void Server2ndTry::start() {
 	std::thread z([&]() {updateLoop();});
 	while (isRunning.load()) {}
 	t.join();
-	std::cout << "closing server" << std::endl;
 	y.join();
 	z.join();
 }
@@ -119,7 +118,6 @@ void Server2ndTry::handleStart(sf::Packet& p, sf::TcpSocket& s) {
 		player->socket.send(ps);
 	}
 	clock.restart();
-
 }
 void Server2ndTry::startPathsIf(bool conditions) {
 	if (!pathsStarted && conditions) {
@@ -144,6 +142,29 @@ void Server2ndTry::handleUpdate(sf::Packet& incomingMessage, sf::TcpSocket& sock
 				players[i]->processMovement(incomingMessage);
 		}
 	}
+	if (isVictoryConditionMet()) {
+		//this part breaks
+		if (currentRound < roundLimit) 	
+		{
+			startNewRound();
+		}
+		else {
+			endGame();
+		}
+		currentRound += 1;
+	}
+}
+
+
+
+bool Server2ndTry::isVictoryConditionMet() {
+	int movingCounter = 0;
+	for (auto& p : players) {
+		if (p->movable) {
+			movingCounter++;
+		}
+	}
+	return movingCounter < 1;
 }
 
 void Server2ndTry::updateLoop() {
@@ -247,7 +268,7 @@ void Server2ndTry::recvLoop() {
 					}	
 					else {
 						parseRecieved(p, soc);
-						iter++;
+							iter++;
 					};
 				}
 				else
