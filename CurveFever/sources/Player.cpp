@@ -133,7 +133,7 @@ bool Player::checkForCollision() {
 		return true;
 	}
 	for (std::pair<float, float> point : collisionPointMap) {
-		if (distance(current, {point.first, point.second}) < size * 2) {
+		if (distance(current, {point.first, point.second}) < size) {
 			return true;
 		}
 	}
@@ -152,8 +152,8 @@ bool Player::checkForCollision(Player& other) {
 		return true;
 	}
 	for (std::pair<float, float> point : other.collisionPointMap) {
-		if (abs(point.first - getPosition().x) < size * 4) { // calculate only if near on x axis
-			if (distance(current, {point.first, point.second}) < size * 2) {
+		if (abs(point.first - getPosition().x) < size * 2) { // calculate only if near on x axis
+			if (distance(current, {point.first, point.second}) < size) {
 				return true;
 			}
 		}
