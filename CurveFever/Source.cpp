@@ -11,6 +11,9 @@
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
+#include "sources/Player.cpp"
+#include "sources/Window.cpp"
+#include "sources/Network.cpp"
 #define PI std::acos(0) * 2
 
 extern enum class State;
@@ -151,7 +154,7 @@ void singleplayer(MyRenderWindow& window) {
 			player2.changeAngle(0.00001 * elapsed);
 		}
 		doDebug = keymap[sf::Keyboard::B];
-		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
+		//player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
 		player.moveBy(0.0002 * elapsed);
 		player2.moveBy(0.0002 * elapsed);
 		bool ifFound = false;
