@@ -11,9 +11,6 @@
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
-#include "sources/Player.cpp"
-#include "sources/Window.cpp"
-#include "sources/Network.cpp"
 #define PI std::acos(0) * 2
 
 extern enum class State;
