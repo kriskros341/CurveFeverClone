@@ -11,6 +11,9 @@
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
+#include "sources/Player.cpp"
+#include "sources/Window.cpp"
+#include "sources/Network.cpp"
 #define PI std::acos(0) * 2
 
 extern enum class State;
@@ -139,21 +142,21 @@ void singleplayer(MyRenderWindow& window) {
 		elapsed = clock.restart().asMicroseconds();
 		// handle keys after they are set for clarity sake
 		if (keymap[sf::Keyboard::A]) {
-			player.changeAngle(-0.00001 * elapsed);
+			player.changeAngle(-0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::D]) {
-			player.changeAngle(0.00001 * elapsed);
+			player.changeAngle(0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::J]) {
-			player2.changeAngle(-0.00001 * elapsed);
+			player2.changeAngle(-0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::L]) {
-			player2.changeAngle(0.00001 * elapsed);
+			player2.changeAngle(0.000005 * elapsed);
 		}
 		doDebug = keymap[sf::Keyboard::B];
-		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
-		player.moveBy(0.0002 * elapsed);
-		player2.moveBy(0.0002 * elapsed);
+		//player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
+		player.moveBy(0.00015 * elapsed);
+		player2.moveBy(0.00015 * elapsed);
 		bool ifFound = false;
 		for (Player* p : players) {
 			for (Player* q : players) {
@@ -182,18 +185,32 @@ void singleplayer(MyRenderWindow& window) {
 
 
 void menu(MyRenderWindow& window, std::atomic<State>& s, BackgroundImage& bcgg) {
-	ImGui::Begin("D");
+	ImGui::Begin("Menu");
+	ImGuiStyle* style = &ImGui::GetStyle();
 
-	if (ImGui::Button("start")) {
+	style->WindowBorderSize = 0;
+	style->WindowTitleAlign = ImVec2(0.5, 0.5);
+	style->WindowMinSize = ImVec2(300, 300);
+	style->Colors[ImGuiCol_TitleBg] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgActive] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgCollapsed] = ImColor(0, 0, 0, 200);
+
+	style->Colors[ImGuiCol_Button] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonActive] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonHovered] = ImColor(41, 40, 41, 255);
+
+	ImGui::Spacing();
+	if (ImGui::Button("Local multiplayer", ImVec2(285, 50))) {
 		s = State::singleplayer;
 	}
-	if (ImGui::Button("multiplayer")) {
+	ImGui::Spacing();
+	if (ImGui::Button("Server multiplayer", ImVec2(285, 50))) {
 		s = State::multiplayerMenu;
 	}
-	if (ImGui::Button("host")) {
+	ImGui::Spacing();
+	if (ImGui::Button("Host", ImVec2(285, 50))) {
 		s = State::serverHost;
 	}
-	ImGui::Text("testest");
 	ImGui::End();
 
 	window.clear();

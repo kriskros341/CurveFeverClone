@@ -12,6 +12,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
 	return std::sqrt(vec.x * vec.x + vec.y * vec.y);
 };
 void PositionManager::restart() {
+	angle = rand() % 360;
 	current = starting;
 	previous = starting;
 }
@@ -55,6 +56,7 @@ void LineManager::restart() {
 	collisionPointQueue.clear();
 	lineIndex = startingLineIndex;
 	initiateLine();
+	
 }
 int LineManager::getLineIndex() {
 	return lineIndex;
@@ -75,7 +77,18 @@ void Player::moveTo(sf::Vector2f newp) {
 	}
 	setPosition(newp);
 }
+void Player::chooseWhetherToPlacePathOrNot() {
+	sf::Time time1;
+	time1 = clock1.getElapsedTime();
+	if (time1.asMilliseconds() % 15 == 0) {
+		if (!placesPath) {
+			initiateLine();
+		}
+		placesPath = !placesPath;
+	}
+}
 void Player::moveBy(float distance) {
+	chooseWhetherToPlacePathOrNot();
 	if (placesPath) {
 		setPath();
 		updateCollisionQueue();
@@ -120,7 +133,7 @@ bool Player::checkForCollision() {
 		return true;
 	}
 	for (std::pair<float, float> point : collisionPointMap) {
-		if (distance(current, {point.first, point.second}) < size * 2) {
+		if (distance(current, {point.first, point.second}) < size) {
 			return true;
 		}
 	}
@@ -139,8 +152,8 @@ bool Player::checkForCollision(Player& other) {
 		return true;
 	}
 	for (std::pair<float, float> point : other.collisionPointMap) {
-		if (abs(point.first - getPosition().x) < size * 4) { // calculate only if near on x axis
-			if (distance(current, {point.first, point.second}) < size * 2) {
+		if (abs(point.first - getPosition().x) < size * 2) { // calculate only if near on x axis
+			if (distance(current, {point.first, point.second}) < size) {
 				return true;
 			}
 		}

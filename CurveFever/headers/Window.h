@@ -9,7 +9,7 @@ public:
 	sf::Texture imag;
 	sf::Sprite sprit;
 
-	BackgroundImage(std::string pngname = "Texture/gg.jpg") {
+	BackgroundImage(std::string pngname = "Texture/gg2.png") {
 		imag.loadFromFile(pngname);
 		scrres = imag.getSize();
 		sprit.setTexture(imag);

@@ -122,6 +122,7 @@ class Player : public LineManager, public PositionManager {
 	int id{};
 	sf::Clock linerestart;
 	LineModes lineMode = LineModes::both;
+	sf::Clock clock1;
 public:
 	ScoreManager score;
 	friend class MyRenderWindow;
@@ -174,5 +175,6 @@ public:
 	void setVisualPath();
 	void setCollisionPath();
 	void setPath();
+	void chooseWhetherToPlacePathOrNot();
 	~Player() {}
 };
