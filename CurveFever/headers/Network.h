@@ -95,7 +95,7 @@ class Server2ndTry {
 	std::atomic<bool> isRunning;
 	std::thread loops;
 	
-	int currentRound = 0, roundLimit = 5;
+	int currentRound = 0, roundLimit = 4;
 	void startNewRound() {
 		pathsStarted = false;
 		clock.restart();
@@ -117,14 +117,13 @@ class Server2ndTry {
 		for (auto& p : players) {
 			p->socket.send(message);
 		}
-		
 	}
 	void endGame() {
 		sf::Packet message;
 		std::stringstream stream;
 		message << "SCORE";
 		for (auto& p : players) {
-			stream << p->score.getScore() << "|";
+			stream << p->score.getScore() << " ";
 		}
 
 		std::string temp = stream.str();

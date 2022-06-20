@@ -14,7 +14,7 @@ void NetworkPlayer::processMovement(sf::Packet& p) {
 	p >> left >> right >> space;
 	changeAngle(-1 * left * 0.003 * timeSinceLastUpdate.asMilliseconds());
 	changeAngle(1 * right * 0.003 * timeSinceLastUpdate.asMilliseconds());
-	moveBy(0.05 * timeSinceLastUpdate.asMilliseconds());
+	moveBy(0.1 * timeSinceLastUpdate.asMilliseconds());
 }
 
 bool networkClient::getConnected() {
@@ -96,7 +96,7 @@ void Server2ndTry::start() {
 std::string Server2ndTry::serializePlayerData() {
 	std::stringstream stream;
 	for (auto& player : players) {
-		stream << player->getPlacesPath();
+		stream << player->getPlacesPath() && pathsStarted;
 		stream << " ";
 		stream << std::fixed << player->getPosition().x;
 		stream << " ";

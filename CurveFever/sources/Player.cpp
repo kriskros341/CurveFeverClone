@@ -90,6 +90,7 @@ void Player::chooseWhetherToPlacePathOrNot() {
 void Player::moveBy(float distance) {
 	chooseWhetherToPlacePathOrNot();
 	if (placesPath) {
+		score.addScore();
 		setPath();
 		updateCollisionQueue();
 	}
@@ -107,6 +108,9 @@ sf::Vector2f Player::getStarting() {
 }
 // Set whether player places path
 void Player::setPlacesPath(bool v) {
+	if (placesPath == false && v == true) {
+		initiateLine();
+	}
 	placesPath = v;
 };
 // Get whether player places path

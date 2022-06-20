@@ -26,6 +26,9 @@ public:
 		guiClock = sf::Clock();
 	}
 	void draw(Player& player);
+	void draw(sf::Text& text) {
+		sf::RenderWindow::draw(text);
+	};
 	void draw(BackgroundImage& bcg);
 	void draw(sf::Shape& s);
 	void draw(sf::VertexArray& v);

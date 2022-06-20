@@ -13,6 +13,7 @@
 #include <Network.h>
 #define PI std::acos(0) * 2
 
+sf::Font font;
 extern enum class State;
 
 extern const sf::Vector2u screenSize;
@@ -61,6 +62,9 @@ void singleplayer(MyRenderWindow& window) {
 	// doing linesArray stuff directly within player object breaks everything ; . ;
 	Player player(200, 2); //starting position, starting size
 	Player player2(200, 2);
+	int score1{}, score2{};
+	int roundLimit = 5;
+	int currentRound = 0;
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -68,7 +72,10 @@ void singleplayer(MyRenderWindow& window) {
 
 	//Make it all into a  game object
 	auto restart = [&]() {
+		currentRound += 1;
+		score1 += player.score.getScore();
 		player.restart();
+		score2 += player2.score.getScore();
 		player2.restart();
 	};
 
@@ -152,12 +159,15 @@ void singleplayer(MyRenderWindow& window) {
 		}
 		doDebug = keymap[sf::Keyboard::B];
 		//player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
-		player.moveBy(0.00015 * elapsed);
-		player2.moveBy(0.00015 * elapsed);
+		if (currentRound < roundLimit) {
+			player.moveBy(0.00015 * elapsed);
+			player2.moveBy(0.00015 * elapsed);
+		}
 		bool ifFound = false;
 		for (Player* p : players) {
 			for (Player* q : players) {
 				if (p->checkForCollision(*q)) {
+					q->score.addScore(20);
 					restart();
 					ifFound = true;
 					continue;
@@ -170,10 +180,26 @@ void singleplayer(MyRenderWindow& window) {
 
 		window.draw(player);
 		window.draw(player2);
+
+		sf::Text t1;
+		t1.setString(std::to_string(score1 + player.score.getScore()));
+		t1.setCharacterSize(40);
+		t1.setFont(font);
+		t1.setPosition({ 50, 50 });
+		t1.setFillColor({ (sf::Uint8)player.randRGBv0, (sf::Uint8)player.randRGBv1, (sf::Uint8)player.randRGBv2 });
+		window.draw(t1);
+		sf::Text t2;
+		t2.setString(std::to_string(score2 + player.score.getScore()));
+		t2.setCharacterSize(40);
+		t2.setFont(font);
+		t2.setPosition({ 50, 100 });
+		t2.setFillColor({ (sf::Uint8)player2.randRGBv0, (sf::Uint8)player2.randRGBv1, (sf::Uint8)player2.randRGBv2 });
+		window.draw(t2);
 		if(doDebug) debug();
 		window.display();
 		// increment game tick by a value modified by time between frames
 		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+
 		currentTick = currentTick + 5 * elapsed;
 	}
 	delete arrow;
@@ -280,6 +306,9 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 	srand(time(NULL));
 	bool isRunning = true;
 	bool isStarted = false;
+	bool showScore = false;
+	
+	std::vector<std::string> scores;
 	std::vector<std::shared_ptr<Player>> players;
 	auto processMovementFromString = [&](std::string serializedData) {
 		std::vector<std::string> playerData;
@@ -339,13 +368,15 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				}
 			}
 			if (procedure == "SCORE") {
-				std::vector<std::string> scores;
-				std::cout << stringifiedData;
+				if (!showScore) {
+					splitTo(stringifiedData, ' ', scores);
+					showScore = true;
+				}
 			}
 			if (procedure == "RESTART") {
 				std::vector<std::string> playerData;
 				splitTo(stringifiedData, '|', playerData);
-				std::cout << stringifiedData << " " << playerData.size() << std::endl;;
+				//std::cout << stringifiedData << " " << playerData.size() << std::endl;;
 				tempMut.lock();
 				for (int i = 0; i < playerData.size(); i++) {
 					players[i]->restart();
@@ -371,7 +402,7 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 			bool right = net.keymap[sf::Keyboard::A], left = net.keymap[sf::Keyboard::D], space = net.keymap[sf::Keyboard::Space];
 			std::string procedure = "UPDATE";
 			pac2 << procedure << left << right << space;
-			std::cout << procedure << left << right << space << std::endl;
+			//std::cout << procedure << left << right << space << std::endl;
 			net.getSocket().send(pac2);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000)/100);
 		}
@@ -395,9 +426,20 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 			}
 		}
 		window.clear();
+		tempMut.lock();
 		for (auto& x : players) {
 			window.draw(*x);
 		}
+		for (int i{}; i < scores.size(); i++) {
+			sf::Text t;
+			t.setString(scores[i]);
+			t.setCharacterSize(40);
+			t.setFont(font);
+			t.setPosition({ 50, (float)50*i });
+			t.setFillColor({ (sf::Uint8)players[i]->randRGBv0, (sf::Uint8)players[i]->randRGBv1, (sf::Uint8)players[i]->randRGBv2 });
+			window.draw(t);
+		}
+		tempMut.unlock();
 		window.display();
 	}
 	recvLoopThread.join();
@@ -498,6 +540,7 @@ void client() {
 	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
 	window.setFramerateLimit(60);
 	ImGui::SFML::Init(window);
+	font.loadFromFile("Arial.ttf");
 	networkClient net;
 	BackgroundImage bcgg;
 
