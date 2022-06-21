@@ -6,6 +6,7 @@ const sf::Vector2u screenSize(1000, 1000);
 
 sf::Vector2f midpoint(sf::Vector2f v1, sf::Vector2f v2);
 
+/// Class for managing vectors
 class Vector {
 	float length{};
 	float angle{};
@@ -15,6 +16,7 @@ public:
 };
 
 float distance(sf::Vector2f a, sf::Vector2f b);
+/// Class for managing position of players
 class PositionManager {
 	float angle{};
 	sf::Vector2f current;
@@ -32,7 +34,6 @@ public:
 		current = secr, starting = secr, previous = secr;
 	}
 	PositionManager(float radius = 300) : startingDistance(radius) {
-		//std::cout << std::cos(angle) << ", " << std::sin(angle) << ", radians: " << angle * PI / 180 << std::endl;
 		pickNewPosition(startingDistance);
 		
 	}
@@ -46,6 +47,7 @@ public:
 	void applyDisplacement(Vector& v);
 };
 
+/// Class for managing line indexes, line placement
 class LineManager {
 	const int startingLineIndex = 0 - 1; // because it's always incremented by one whenever path is placed;
 	int lineIndex = startingLineIndex; 
@@ -74,6 +76,7 @@ public:
 	}
 };
 
+/// Class for managing the score
 class ScoreManager {
 	int startingScore = 0;
 	std::vector<int> scoreBoard;
@@ -116,6 +119,7 @@ enum class Inputs {
 	Space = 3,
 };
 
+/// Class for managing players, particularly movement, size, position, collision etc.
 class Player : public LineManager, public PositionManager {
 	bool placesPath = true;
 	int size{};
@@ -140,7 +144,7 @@ public:
 		restart();
 		setPosition(newPos);
 	}
-	// restart game
+	/// restart game
 	void restart() {
 		placesPath = false;
 		LineManager::restart();

@@ -11,6 +11,9 @@
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
+#include "sources/Player.cpp"
+#include "sources/Window.cpp"
+#include "sources/Network.cpp"
 #define PI std::acos(0) * 2
 
 sf::Font font;
@@ -54,7 +57,7 @@ void singleplayer(MyRenderWindow& window) {
 	float currentTick{};
 	srand(time(NULL));
 
-	// initiate game clock
+	//initiate game clock
 	sf::Clock clock;
 	float elapsed = 0;
 

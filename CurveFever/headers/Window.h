@@ -2,6 +2,7 @@
 #include "Player.h"
 #include <SFML/Graphics.hpp>
 
+/// Class for managing background of the main screen
 class BackgroundImage {
 public:
 	std::string pngname;
@@ -18,6 +19,7 @@ public:
 	~BackgroundImage() {};
 };
 
+/// Class for initializing window
 class MyRenderWindow : public sf::RenderWindow {
 public:
 	sf::Clock guiClock;
