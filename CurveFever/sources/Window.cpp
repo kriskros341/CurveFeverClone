@@ -7,7 +7,6 @@ void MyRenderWindow::draw(Player& player) {
 	playerDot.setOrigin(p, p);
 	playerDot.setPosition(player.getPosition());
 	sf::RenderWindow::draw(playerDot);
-	
 	for (auto l = player.linesArray.begin(); l != player.linesArray.end(); ++l) {
 		sf::RenderWindow::draw(**l);
 	}

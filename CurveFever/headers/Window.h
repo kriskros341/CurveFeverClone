@@ -9,7 +9,7 @@ public:
 	sf::Texture imag;
 	sf::Sprite sprit;
 
-	BackgroundImage(std::string pngname = "Texture/gg.jpg") {
+	BackgroundImage(std::string pngname = "Texture/gg2.png") {
 		imag.loadFromFile(pngname);
 		scrres = imag.getSize();
 		sprit.setTexture(imag);
@@ -26,6 +26,9 @@ public:
 		guiClock = sf::Clock();
 	}
 	void draw(Player& player);
+	void draw(sf::Text& text) {
+		sf::RenderWindow::draw(text);
+	};
 	void draw(BackgroundImage& bcg);
 	void draw(sf::Shape& s);
 	void draw(sf::VertexArray& v);

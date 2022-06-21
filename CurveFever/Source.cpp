@@ -13,6 +13,7 @@
 #include <Network.h>
 #define PI std::acos(0) * 2
 
+sf::Font font;
 extern enum class State;
 
 extern const sf::Vector2u screenSize;
@@ -61,6 +62,9 @@ void singleplayer(MyRenderWindow& window) {
 	// doing linesArray stuff directly within player object breaks everything ; . ;
 	Player player(200, 2); //starting position, starting size
 	Player player2(200, 2);
+	int score1{}, score2{};
+	int roundLimit = 5;
+	int currentRound = 0;
 
 	//initiate keymap (used to negate keyboard input lag)
 	std::map<sf::Keyboard::Key, bool> keymap;
@@ -68,7 +72,10 @@ void singleplayer(MyRenderWindow& window) {
 
 	//Make it all into a  game object
 	auto restart = [&]() {
+		currentRound += 1;
+		score1 += player.score.getScore();
 		player.restart();
+		score2 += player2.score.getScore();
 		player2.restart();
 	};
 
@@ -139,25 +146,28 @@ void singleplayer(MyRenderWindow& window) {
 		elapsed = clock.restart().asMicroseconds();
 		// handle keys after they are set for clarity sake
 		if (keymap[sf::Keyboard::A]) {
-			player.changeAngle(-0.00001 * elapsed);
+			player.changeAngle(-0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::D]) {
-			player.changeAngle(0.00001 * elapsed);
+			player.changeAngle(0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::J]) {
-			player2.changeAngle(-0.00001 * elapsed);
+			player2.changeAngle(-0.000005 * elapsed);
 		}
 		if (keymap[sf::Keyboard::L]) {
-			player2.changeAngle(0.00001 * elapsed);
+			player2.changeAngle(0.000005 * elapsed);
 		}
 		doDebug = keymap[sf::Keyboard::B];
-		player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
-		player.moveBy(0.0002 * elapsed);
-		player2.moveBy(0.0002 * elapsed);
+		//player.setPlacesPath(!keymap[sf::Keyboard::Space]); //tutaj
+		if (currentRound < roundLimit) {
+			player.moveBy(0.00015 * elapsed);
+			player2.moveBy(0.00015 * elapsed);
+		}
 		bool ifFound = false;
 		for (Player* p : players) {
 			for (Player* q : players) {
 				if (p->checkForCollision(*q)) {
+					q->score.addScore(20);
 					restart();
 					ifFound = true;
 					continue;
@@ -170,10 +180,26 @@ void singleplayer(MyRenderWindow& window) {
 
 		window.draw(player);
 		window.draw(player2);
+
+		sf::Text t1;
+		t1.setString(std::to_string(score1 + player.score.getScore()));
+		t1.setCharacterSize(40);
+		t1.setFont(font);
+		t1.setPosition({ 50, 50 });
+		t1.setFillColor({ (sf::Uint8)player.randRGBv0, (sf::Uint8)player.randRGBv1, (sf::Uint8)player.randRGBv2 });
+		window.draw(t1);
+		sf::Text t2;
+		t2.setString(std::to_string(score2 + player.score.getScore()));
+		t2.setCharacterSize(40);
+		t2.setFont(font);
+		t2.setPosition({ 50, 100 });
+		t2.setFillColor({ (sf::Uint8)player2.randRGBv0, (sf::Uint8)player2.randRGBv1, (sf::Uint8)player2.randRGBv2 });
+		window.draw(t2);
 		if(doDebug) debug();
 		window.display();
 		// increment game tick by a value modified by time between frames
 		// this is supposed to make gameplay independent of frames per second and ping in the fututre
+
 		currentTick = currentTick + 5 * elapsed;
 	}
 	delete arrow;
@@ -182,15 +208,32 @@ void singleplayer(MyRenderWindow& window) {
 
 
 void menu(MyRenderWindow& window, std::atomic<State>& s, BackgroundImage& bcgg) {
-	ImGui::Begin("D");
+	ImGui::Begin("Menu");
+	ImGuiStyle* style = &ImGui::GetStyle();
 
-	if (ImGui::Button("start")) {
+	style->WindowBorderSize = 0;
+	style->WindowTitleAlign = ImVec2(0.5, 0.5);
+	style->WindowMinSize = ImVec2(300, 300);
+	style->Colors[ImGuiCol_TitleBg] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgActive] = ImColor(255, 101, 53, 255);
+	style->Colors[ImGuiCol_TitleBgCollapsed] = ImColor(0, 0, 0, 200);
+
+	style->Colors[ImGuiCol_Button] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonActive] = ImColor(31, 30, 31, 255);
+	style->Colors[ImGuiCol_ButtonHovered] = ImColor(41, 40, 41, 255);
+
+	ImGui::Spacing();
+	if (ImGui::Button("Local multiplayer", ImVec2(285, 50))) {
 		s = State::singleplayer;
 	}
-	if (ImGui::Button("multiplayer")) {
+	ImGui::Spacing();
+	if (ImGui::Button("Server multiplayer", ImVec2(285, 50))) {
 		s = State::multiplayerMenu;
 	}
-	ImGui::Text("testest");
+	ImGui::Spacing();
+	if (ImGui::Button("Host", ImVec2(285, 50))) {
+		s = State::serverHost;
+	}
 	ImGui::End();
 
 	window.clear();
@@ -209,16 +252,6 @@ void emptyFn() {};
 
 
 
-// length of the string lol
-int len(std::string str)
-{
-	int length = 0;
-	for (int i = 0; str[i] != '\0'; i++)
-	{
-		length++;
-	}
-	return length;
-}
 /*
 	<b>Clears</b> the vector and fills it with sliced string
 */
@@ -227,9 +260,9 @@ void splitTo(std::string str, const char seperator, std::vector<std::string>& co
 	cont.clear();
 	int currIndex = 0, i = 0;
 	int startIndex = 0, endIndex = 0;
-	while (i <= len(str))
+	while (i <= str.size())
 	{
-		if (str[i] == seperator || i == len(str))
+		if (str[i] == seperator || i == str.size())
 		{
 			endIndex = i;
 			std::string subStr = "";
@@ -248,9 +281,9 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 	int currIndex = 0, i = 0;
 	int startIndex = 0, endIndex = 0;
 	std::pair<std::string, std::string> result;
-	while (i <= len(str))
+	while (i <= str.size())
 	{
-		if (str[i] == seperator || i == len(str))
+		if (str[i] == seperator || i == str.size())
 		{
 			endIndex = i;
 			std::string subStr = "";
@@ -267,15 +300,20 @@ std::pair<std::string, std::string> splitOnceBy(std::string str, const char sepe
 	return result;
 }
 
+std::mutex tempMut;
 
 void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
 	srand(time(NULL));
 	bool isRunning = true;
 	bool isStarted = false;
+	bool showScore = false;
+	
+	std::vector<std::string> scores;
 	std::vector<std::shared_ptr<Player>> players;
 	auto processMovementFromString = [&](std::string serializedData) {
 		std::vector<std::string> playerData;
 		splitTo(serializedData, '|', playerData);
+		tempMut.lock();
 		for (int i = 0; i < playerData.size(); i++) {
 			std::vector<std::string> playerMovement;
 			splitTo(playerData[i], ' ', playerMovement);
@@ -288,11 +326,13 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				players[i]->moveTo(newPosition);
 			}
 		}
+		tempMut.unlock();
 	};
 	auto createPlayers = [&](std::string serializedData) {
 		std::vector<std::string> playerData;
 		std::vector<std::string> playerMovement;
 		splitTo(serializedData, '|', playerData);
+		tempMut.lock();
 		for (int i = 0; i < playerData.size(); i++) {
 			splitTo(playerData[i], ' ', playerMovement);
 			//There is a white space at the end of every serialized string...
@@ -308,6 +348,7 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 				players.push_back(p);
 			}
 		}
+		tempMut.unlock();
 	};
 
 	std::thread recvLoopThread([&]() {
@@ -326,6 +367,33 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 					processMovementFromString(stringifiedData);
 				}
 			}
+			if (procedure == "SCORE") {
+				if (!showScore) {
+					splitTo(stringifiedData, ' ', scores);
+					showScore = true;
+				}
+			}
+			if (procedure == "RESTART") {
+				std::vector<std::string> playerData;
+				splitTo(stringifiedData, '|', playerData);
+				//std::cout << stringifiedData << " " << playerData.size() << std::endl;;
+				tempMut.lock();
+				for (int i = 0; i < playerData.size(); i++) {
+					players[i]->restart();
+					std::vector<std::string> playerMovement;
+					splitTo(playerData[i], ' ', playerMovement);
+					
+					if (playerMovement.size() >= 3) {
+						players[i]->setPlacesPath(playerMovement[0] == "1");
+						sf::Vector2f newPosition = {
+								(float)std::atof(playerMovement[1].c_str()),
+								(float)std::atof(playerMovement[2].c_str())
+						};
+						players[i]->moveTo(newPosition);
+					}
+				}
+				tempMut.unlock();
+			}
 		}
 		});
 	std::thread sendLoopThread([&]() {
@@ -334,7 +402,7 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 			bool right = net.keymap[sf::Keyboard::A], left = net.keymap[sf::Keyboard::D], space = net.keymap[sf::Keyboard::Space];
 			std::string procedure = "UPDATE";
 			pac2 << procedure << left << right << space;
-			std::cout << procedure << left << right << space << std::endl;
+			//std::cout << procedure << left << right << space << std::endl;
 			net.getSocket().send(pac2);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000)/100);
 		}
@@ -358,31 +426,61 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 			}
 		}
 		window.clear();
+		tempMut.lock();
 		for (auto& x : players) {
 			window.draw(*x);
 		}
+		for (int i{}; i < scores.size(); i++) {
+			sf::Text t;
+			t.setString(scores[i]);
+			t.setCharacterSize(40);
+			t.setFont(font);
+			t.setPosition({ 50, (float)50*i });
+			t.setFillColor({ (sf::Uint8)players[i]->randRGBv0, (sf::Uint8)players[i]->randRGBv1, (sf::Uint8)players[i]->randRGBv2 });
+			window.draw(t);
+		}
+		tempMut.unlock();
 		window.display();
 	}
 	recvLoopThread.join();
 	sendLoopThread.join();
 }
 void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
+	static char address[300]{};
+	ImGui::InputText("Ip Address", address, sizeof(address));
+	net.ip = sf::IpAddress(address);
+	static int connectionState = 0;
 	if (ImGui::Button("back")) {
 		s = State::menu;
 		net.disconnect();
 	}
-	if (ImGui::Button("start")) {
-		net.start();
+	switch (connectionState) {
+	case 0: {
+		if (ImGui::Button("Connect")) {
+			std::cout << "attempting to connect to " << net.ip << " at " << net.port << std::endl;
+			net.connect();
+		}
+		if (net.isWorking()) {
+			connectionState = 1;
+		}
+		break;
 	}
-
-	if (ImGui::Button("join")) {
-		net.join(s);
+	case 1: {
+		if (ImGui::Button("join")) {
+			net.join(s);
+			connectionState = 2;
+		}
+		break;
 	}
-
-	if (ImGui::Button("test")) {
-		net.test();
+	case 2:
+		if (ImGui::Button("start")) {
+			net.start();
+		}
+		if (ImGui::Button("Leave")) {
+			net.disconnect();
+			connectionState = 0;
+		}
 	}
-
 	window.clear();
 	ImGui::SFML::Render(window);
 	window.display();
@@ -402,11 +500,39 @@ void multiplayerConnecting(MyRenderWindow& window, std::atomic<State>& s, networ
 }
 
 
-
-void server2ndTry() {
-	Server2ndTry s;
-	s.start();
+void server2ndTry(MyRenderWindow& window, std::atomic<State>& gameState) {
+	static std::unique_ptr<Server2ndTry> s = std::make_unique<Server2ndTry>();
+	static std::string publicIpAddress = sf::IpAddress::getPublicAddress(sf::seconds(5.0f)).toString();
+	static std::thread serverThread;
+	std::string localIpAddress = sf::IpAddress::getLocalAddress().toString();
+	int port = std::atoi(defaultPort.c_str());
+	std::stringstream text;
+	text << "awaiting messages at " << publicIpAddress << " publicly and " << localIpAddress << " Locally at " << port;
+	std::string debugMessage = text.str();
+	
+	ImGui::Begin("tototototottototojesttest");
+	bool isRunning = s->getRunning();
+		if (isRunning) {
+			ImGui::Text(debugMessage.c_str());
+			if (ImGui::Button("stop")) {
+				s->stopServer();
+			}
+			ImGui::Text("Make sure your firewall doesn't block the communication and that port is open");
+		}
+		else {
+			if (ImGui::Button("back")) {
+				gameState = State::menu;
+			}
+			if (ImGui::Button("start")) {
+				s->start();
+			}
+		}
+	ImGui::End();
+	window.clear();
+	ImGui::SFML::Render(window);
+	window.display();
 }
+
 
 void client() {
 	sf::ContextSettings settings;
@@ -414,6 +540,7 @@ void client() {
 	MyRenderWindow window(sf::VideoMode(screenSize.x, screenSize.y), "SFML", settings);
 	window.setFramerateLimit(60);
 	ImGui::SFML::Init(window);
+	font.loadFromFile("Arial.ttf");
 	networkClient net;
 	BackgroundImage bcgg;
 
@@ -445,15 +572,11 @@ void client() {
 			break;
 		}
 		case State::multiplayerMenu: {
-			if (!net.isWorking()) {
-				net.connect();
-			}
-			if (net.getConnected()) {
-				multiplayerMenu(window, currentState, net);
-			}
-			else {
-				multiplayerConnecting(window, currentState, net);
-			}
+			multiplayerMenu(window, currentState, net);
+			break;
+		}
+		case State::serverHost: {
+			server2ndTry(window, currentState);
 			break;
 		}
 		}
@@ -463,14 +586,5 @@ void client() {
 
 int main() {
 	srand(time(NULL));
-	char varstart;
-	cout << "Enter 'y': " << endl;
-	std::cin >> varstart;
-
-	if (varstart == 'y') {
-		client();
-	}
-	else {
-		server2ndTry();
-	}
+	client();
 }

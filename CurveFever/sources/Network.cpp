@@ -14,7 +14,7 @@ void NetworkPlayer::processMovement(sf::Packet& p) {
 	p >> left >> right >> space;
 	changeAngle(-1 * left * 0.003 * timeSinceLastUpdate.asMilliseconds());
 	changeAngle(1 * right * 0.003 * timeSinceLastUpdate.asMilliseconds());
-	moveBy(0.05 * timeSinceLastUpdate.asMilliseconds());
+	moveBy(0.1 * timeSinceLastUpdate.asMilliseconds());
 }
 
 bool networkClient::getConnected() {
@@ -24,11 +24,11 @@ bool networkClient::getConnecting() {
 	return isConnecting;
 }
 bool networkClient::isWorking() {
-	return isConnected || isConnecting;
+	return isConnected;
 }
 void networkClient::connect() {
 	isConnecting = true;
-	socket.connect(ip, 5030);
+	socket.connect(ip, atoi(port.c_str()));
 	sf::Packet incomingMessage;
 	socket.receive(incomingMessage);
 	std::string data;
@@ -84,15 +84,19 @@ sf::TcpSocket& networkClient::getSocket() {
 
 void Server2ndTry::start() {
 	clock.restart();
+	isRunning.store(true);
 	std::thread t([&]() {acceptLoop();});
 	std::thread y([&]() {recvLoop();});
 	std::thread z([&]() {updateLoop();});
-	while (true) {}
+	while (isRunning.load()) {}
+	t.join();
+	y.join();
+	z.join();
 }
 std::string Server2ndTry::serializePlayerData() {
 	std::stringstream stream;
 	for (auto& player : players) {
-		stream << player->getPlacesPath();
+		stream << player->getPlacesPath() && pathsStarted;
 		stream << " ";
 		stream << std::fixed << player->getPosition().x;
 		stream << " ";
@@ -114,7 +118,6 @@ void Server2ndTry::handleStart(sf::Packet& p, sf::TcpSocket& s) {
 		player->socket.send(ps);
 	}
 	clock.restart();
-
 }
 void Server2ndTry::startPathsIf(bool conditions) {
 	if (!pathsStarted && conditions) {
@@ -130,7 +133,7 @@ void Server2ndTry::handleUpdate(sf::Packet& incomingMessage, sf::TcpSocket& sock
 	startPathsIf(clock.getElapsedTime().asSeconds() > 2);
 	for (int i{}; i < players.size(); i++) {
 		if (compareHosts(socket, players[i]->socket)) {
-			for (int j = i; j < players.size(); j++) {
+			for (int j{}; j < players.size(); j++) {
 				if (players[i]->movable && players[i]->checkForCollision(*players[j])) {
 					players[i]->movable = false;
 				}
@@ -139,10 +142,33 @@ void Server2ndTry::handleUpdate(sf::Packet& incomingMessage, sf::TcpSocket& sock
 				players[i]->processMovement(incomingMessage);
 		}
 	}
+	if (isVictoryConditionMet()) {
+		//this part breaks
+		if (currentRound < roundLimit) 	
+		{
+			startNewRound();
+		}
+		else {
+			endGame();
+		}
+		currentRound += 1;
+	}
+}
+
+
+
+bool Server2ndTry::isVictoryConditionMet() {
+	int movingCounter = 0;
+	for (auto& p : players) {
+		if (p->movable) {
+			movingCounter++;
+		}
+	}
+	return movingCounter < 1;
 }
 
 void Server2ndTry::updateLoop() {
-	while (true) {
+	while (isRunning.load()) {
 		if (started) {
 			sf::Packet ps;
 			ps << "UPDATE";
@@ -190,11 +216,11 @@ void Server2ndTry::parseRecieved(sf::Packet& incomingMessage, sf::TcpSocket& soc
 }
 
 void Server2ndTry::acceptLoop() {
-	while (true) {
+	while (isRunning.load()) {
 		std::shared_ptr<sf::TcpSocket> client = std::make_shared<sf::TcpSocket>();
 		sf::Packet outgoingMessage;
 		outgoingMessage << "welcome";
-		if (listener.listen(5030) != sf::Socket::Done) {
+		if (listener.listen(std::atoi(defaultPort.c_str())) != sf::Socket::Done) {
 			std::cout << "Failed to listen on port" << std::endl;
 		}
 		if (listener.accept(*client) != sf::Socket::Done) {
@@ -208,8 +234,26 @@ void Server2ndTry::acceptLoop() {
 		socketMutex.unlock();
 	}
 }
+
+void Server2ndTry::restart() {
+	listener.close();
+	selector.clear();
+	sockets.clear();
+	players.clear();
+	clock.restart();
+	started = false;
+	pathsStarted = false;
+}
+
+void Server2ndTry::stopServer() {
+	isRunning.store(false);
+	restart();
+}
 void Server2ndTry::recvLoop() {
-	while (true) {
+	sf::IpAddress publicIpAddress = sf::IpAddress::getPublicAddress(sf::seconds(5.0f)).toString();
+	sf::IpAddress localIpAddress = sf::IpAddress::getLocalAddress().toString();
+	int port = std::atoi(defaultPort.c_str());
+	while (isRunning.load()) {
 		if (selector.wait(sf::seconds(10.f))) {
 			for (auto iter = sockets.begin(); iter != sockets.end();) {
 				socketMutex.lock();
@@ -224,7 +268,7 @@ void Server2ndTry::recvLoop() {
 					}	
 					else {
 						parseRecieved(p, soc);
-						iter++;
+							iter++;
 					};
 				}
 				else
@@ -233,6 +277,5 @@ void Server2ndTry::recvLoop() {
 				}
 			}
 		 else
-			std::cout << "timeout" << std::endl;
-	}
+			std::cout << "awaiting messages at " << publicIpAddress << " publicly and " << localIpAddress << " Locally at " << port << "\n";	}
 };
