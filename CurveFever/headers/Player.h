@@ -148,6 +148,7 @@ public:
 		score.restart();
 		placesPath = true;
 		linerestart.restart();
+		pickNewPosition(300);
 	}
 	void setLineMode(LineModes newMode);
 	int getId();	

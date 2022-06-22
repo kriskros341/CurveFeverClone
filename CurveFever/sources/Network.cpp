@@ -143,7 +143,6 @@ void Server2ndTry::handleUpdate(sf::Packet& incomingMessage, sf::TcpSocket& sock
 		}
 	}
 	if (isVictoryConditionMet()) {
-		//this part breaks
 		if (currentRound < roundLimit) 	
 		{
 			startNewRound();
@@ -254,7 +253,7 @@ void Server2ndTry::recvLoop() {
 	sf::IpAddress localIpAddress = sf::IpAddress::getLocalAddress().toString();
 	int port = std::atoi(defaultPort.c_str());
 	while (isRunning.load()) {
-		if (selector.wait(sf::seconds(10.f))) {
+		if (selector.wait(sf::seconds(1.f))) {
 			for (auto iter = sockets.begin(); iter != sockets.end();) {
 				socketMutex.lock();
 				sf::TcpSocket& soc = **iter;
