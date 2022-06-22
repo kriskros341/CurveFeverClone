@@ -11,6 +11,7 @@ float distance(sf::Vector2f a, sf::Vector2f b) {
 	auto vec = b - a;
 	return std::sqrt(vec.x * vec.x + vec.y * vec.y);
 };
+/// Function that restarts position of players after collision
 void PositionManager::restart() {
 	angle = rand() % 360;
 	current = starting;
@@ -23,33 +24,39 @@ float PositionManager::getDistanceFromPrevious() {
 float PositionManager::getAngleFromPrevious() {
 	return -atan2f(previous.x - current.x, previous.y - current.y) + PI / 2;
 }
+/// Setting angle
 void PositionManager::setAngle(float a) {
 	angle = a;
 }
 float PositionManager::getAngle() {
 	return angle;
 }
+/// Changing angle
 void PositionManager::changeAngle(float a) {
 	angle += a;
 }
+/// Function that applies change of position, including angles
 void PositionManager::applyDisplacement(float distance, float angle) {
 	current += {distance * std::cos(angle), distance * std::sin(angle)};
 }
+/// Setting position
 void PositionManager::setPosition(const sf::Vector2f& n) {
 	previous = current;
 	current = n;
 }
+/// Applying displacement
 void PositionManager::applyDisplacement(Vector& v) {
 	previous = current;
 	current = current + v.getDisplacement();
 }
-
+/// Function that initiate line, incrementing array of vertices
 void LineManager::initiateLine() {
 	lineIndex++;
 	sf::VertexArray* currentLine = new sf::VertexArray;
 	currentLine->setPrimitiveType(sf::TrianglesStrip);
 	linesArray.push_back(currentLine);
 }
+/// Function that clears arrays, restarting them
 void LineManager::restart() {
 	linesArray.clear();
 	collisionPointMap.clear();
@@ -61,6 +68,7 @@ void LineManager::restart() {
 int LineManager::getLineIndex() {
 	return lineIndex;
 }
+/// Incrementing line index
 void LineManager::setLineindex(int i) {
 	lineIndex = i;
 }
@@ -70,6 +78,7 @@ void Player::setLineMode(LineModes newMode) {
 int Player::getId() {
 	return id;
 }
+/// Moving player to different position through its movement
 void Player::moveTo(sf::Vector2f newp) {
 	if (placesPath) {
 		setPath();
@@ -77,6 +86,7 @@ void Player::moveTo(sf::Vector2f newp) {
 	}
 	setPosition(newp);
 }
+/// Function that randomly delays placing of path
 void Player::chooseWhetherToPlacePathOrNot() {
 	sf::Time time1;
 	time1 = clock1.getElapsedTime();
@@ -87,6 +97,7 @@ void Player::chooseWhetherToPlacePathOrNot() {
 		placesPath = !placesPath;
 	}
 }
+/// Function that move line by perticular distance and adds score
 void Player::moveBy(float distance) {
 	chooseWhetherToPlacePathOrNot();
 	if (placesPath) {
@@ -98,37 +109,36 @@ void Player::moveBy(float distance) {
 	applyDisplacement(displacement);
 }
 
-// Get current position on the map
+/// Get current position on the map
 sf::Vector2f Player::getPosition() {
 	return current;
 }
-// Get starting position
+/// Get starting position
 sf::Vector2f Player::getStarting() {
 	return starting;
 }
-// Set whether player places path
+/// Set whether player places path
 void Player::setPlacesPath(bool v) {
 	if (placesPath == false && v == true) {
 		initiateLine();
 	}
 	placesPath = v;
 };
-// Get whether player places path
+/// Get whether player places path
 bool Player::getPlacesPath() {
 	return placesPath;
 };
-// Get size of player
+/// Get size of player
 int Player::getSize() {
 	return size;
 }
-// Set size of player
+/// Set size of player
 void Player::setSize(int n) {
 	size = n;
 }
 
 bool Player::checkForCollision() {
-	// check for collision with screen border, then
-	// check for collision with path
+	/// check for collision with screen border, then check for collision with path
 	if (current.x > screenSize.x ||
 		current.x < 0 ||
 		current.y > screenSize.y ||
@@ -146,8 +156,7 @@ bool Player::checkForCollision() {
 
 
 bool Player::checkForCollision(Player& other) {
-	// check for collision with screen border, then
-	// check for collision with path
+	/// check for collision with screen border, then check for collision with path
 	if (current.x > screenSize.x ||
 		current.x < 0 ||
 		current.y > screenSize.y ||
@@ -165,20 +174,22 @@ bool Player::checkForCollision(Player& other) {
 	return false;
 }
 
+/// Function that iterates and checks whether collision occured
 void Player::updateCollisionQueue() {
 	std::vector<std::pair<float, float>>::iterator queuedPoint = collisionPointQueue.begin();
 	for (; queuedPoint != collisionPointQueue.end();) {
 		if (distance(current, { queuedPoint->first, queuedPoint->second }) > size * 2) {
 			collisionPointMap.push_back(*queuedPoint);
-			//rescure p address;
+			///rescure p address;
 			queuedPoint = collisionPointQueue.erase(queuedPoint);
 		}
 		else {
-			//increment p address
+			///increment p address
 			queuedPoint++;
 		};
 	}
 }
+/// Function that sets visual path to players
 void Player::setVisualPath() {
 	float angleFromPreviousPoint = getAngleFromPrevious();
 	Vector c1(size, angleFromPreviousPoint + 1 * PI / 6);
@@ -193,6 +204,7 @@ void Player::setVisualPath() {
 	}
 
 }
+/// Function that sets path used to initiate collision
 void Player::setCollisionPath() {
 	float angleFromPreviousPoint = getAngleFromPrevious();
 	Vector c1(size, angleFromPreviousPoint + 1 * PI / 6);
@@ -202,6 +214,7 @@ void Player::setCollisionPath() {
 	sf::Vector2f mid = midpoint(v1.position, v4.position);
 	collisionPointQueue.push_back({ mid.x, mid.y });
 }
+/// Setting and initiating both visual and collision lines
 void Player::setPath() {
 	if (lineMode == LineModes::both || lineMode == LineModes::visual) {
 		setVisualPath();
