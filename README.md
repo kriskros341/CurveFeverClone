@@ -31,12 +31,10 @@ To setup the game on your device you need to clone this repository and add both 
 
 To open the game you need to compile the project. When game menu is visible, click "Local multiplayer" button, after that the gameplay begins. Both players can change the direction of their lines by changing angle using keyboard keys:
 * First player uses **A** to turn left and **D** to turn right
-* Second player uses **J** to turn left and **L** to turn right
-You can change these keys inside the code.
+* Second player uses **J** to turn left and **L** to turn right<br>You can change these keys inside the code.
 
 ### Server multiplayer
 
 To open the game you need to compile the project. When game menu is visible, click "Server multiplayer" button, after that the gameplay begins. Both players can change the direction of their lines by changing angle using keyboard keys:
 * First player uses **A** to turn left and **D** to turn right
-* Second player uses **J** to turn left and **L** to turn right
-You can change these keys inside the code.
+* Second player uses **J** to turn left and **L** to turn right<br>You can change these keys inside the code.
