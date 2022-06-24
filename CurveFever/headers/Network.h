@@ -1,11 +1,14 @@
 #pragma once
 #include "Player.h"
+#include <fstream>
 #include <thread>
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
 #include <mutex>
+#include <algorithm>
 #include <sstream>
 const std::string defaultPort = "5030";
+using playerScore = std::pair<std::string, int>;
 
 enum class State {
 	singleplayer = 1,
@@ -14,7 +17,8 @@ enum class State {
 	multiplayer,
 	serverHost
 };
-
+std::pair<std::string, std::string> splitOnceBy(std::string str, const char seperator);
+void splitTo(std::string str, const char seperator, std::vector<std::string>& cont);
 bool compareHosts(sf::TcpSocket& c, sf::TcpSocket& s);
 
 class ControlSignals {
@@ -33,11 +37,18 @@ public:
 	ControlSignals ctrl;
 	sf::Clock clock;
 	sf::Time timeSinceLastUpdate;
+	std::string nickname = "ANON";
 	bool movable{};
 	NetworkPlayer(sf::TcpSocket& co) : Player(300), socket(co), ctrl() {
 		clock.restart();
 		movable = true;
 	};
+	std::string getNickname() {
+		return nickname;
+	}
+	void setNickname(std::string newNickname) {
+		nickname = newNickname;
+	}
 	void restart() {
 		movable = true;
 		clock.restart();
@@ -70,6 +81,7 @@ public:
 	void setPort(std::string p) {
 		port = p;
 	}
+	std::string getLeaderboardData();
 	bool getConnecting();	
 	bool isWorking();	
 	void connect();
@@ -77,11 +89,12 @@ public:
 	void disconnect();	
 	void test();	
 	void awaitStart(std::atomic<State>& s);	
-	void join(std::atomic<State>& s);
+	void join(std::atomic<State>& s, char* nickname);
 	void start();
 	sf::TcpSocket& getSocket();
 };
 
+bool compareScore(const playerScore& p1, const playerScore& p2);
 
 class Server2ndTry {
 	sf::TcpListener listener;
@@ -118,6 +131,7 @@ class Server2ndTry {
 			p->socket.send(message);
 		}
 	}
+	bool endOnce = false;
 	void endGame() {
 		sf::Packet message;
 		std::stringstream stream;
@@ -125,22 +139,70 @@ class Server2ndTry {
 		for (auto& p : players) {
 			stream << p->score.getScore() << " ";
 		}
-
+		if (!endOnce) {
+			std::vector<playerScore> scores;
+			for (auto& p : players) {
+				scores.push_back({ p->getNickname(), p->score.getScore() });
+			}
+			addToScoreboard(scores);
+			endOnce = true;
+		}
 		std::string temp = stream.str();
 		temp.pop_back();
 		message << temp;
 		for (auto& p : players) {
 			p->socket.send(message);
 		}
-
 	}
 public:
+	std::string getLeaderboardData() {
+		std::ifstream file("Scoreboard.txt");
+		std::stringstream content;
+		std::vector<std::string> data;
+		content << file.rdbuf();
+		return content.str();
+	}
+	void deserializeTo(std::string input, std::vector<playerScore>& vec) {
+		std::vector<std::string> tempVec;
+		splitTo(input, ' ', tempVec);
+		for (std::string& playerString : tempVec) {
+			std::pair<std::string, std::string> playerPair = splitOnceBy(playerString, '|');
+			std::cout << playerPair.second << std::endl;
+			playerPair.second[0] = '0'; // override |
+			int score = std::atoi(playerPair.second.c_str());
+			vec.push_back({ playerPair.first, score });
+		}
+	}
+	void addToScoreboard(std::vector<playerScore> newScores) {
+		std::vector<playerScore> data;
+		deserializeTo(getLeaderboardData(), data);
+		for (auto x : data) {
+			std::cout << x.first << "  " << x.second << std::endl;
+		}
+		for (auto x : newScores) {
+			data.push_back(x);
+		}
+		std::sort(data.begin(), data.end(), compareScore);
+		std::cout << "---" << std::endl;
+		for (auto x : data) {
+			std::cout << x.first << "  " << x.second << std::endl;
+		}
+		std::stringstream toBeSaved;
+		for (int i{}; i < std::min(10, (int)data.size()); i++) {
+			toBeSaved << data[i].first << '|' << data[i].second << " ";
+		}
+		std::string result = toBeSaved.str();
+		std::ofstream file{"Scoreboard.txt"};
+		result.pop_back(); // get rid of last space
+		file << result;
+	}
 	void start();
 	bool isVictoryConditionMet();
 	std::string serializePlayerData();
 	void handleStart(sf::Packet& p, sf::TcpSocket& s);
 	void startPathsIf(bool conditions);
 	void handleUpdate(sf::Packet& incomingMessage, sf::TcpSocket& socket);
+	void handleScoreboard(sf::TcpSocket& s);
 	void updateLoop();
 	void handleJoin(sf::Packet& IncomingMessage, sf::TcpSocket& socket);
 	void parseRecieved(sf::Packet& incomingMessage, sf::TcpSocket& socket);

@@ -1,6 +1,53 @@
 #pragma once
 #include "Network.h"
 
+/*
+	<b>Clears</b> the vector and fills it with sliced string
+*/
+void splitTo(std::string str, const char seperator, std::vector<std::string>& cont)
+{
+	cont.clear();
+	int currIndex = 0, i = 0;
+	int startIndex = 0, endIndex = 0;
+	while (i <= str.size())
+	{
+		if (str[i] == seperator || i == str.size())
+		{
+			endIndex = i;
+			std::string subStr = "";
+			subStr.append(str, startIndex, endIndex - startIndex);
+			cont.push_back(subStr);
+			currIndex += 1;
+			startIndex = endIndex + 1;
+		}
+		i++;
+	}
+}
+
+std::pair<std::string, std::string> splitOnceBy(std::string str, const char seperator)
+{
+	int currIndex = 0, i = 0;
+	int startIndex = 0, endIndex = 0;
+	std::pair<std::string, std::string> result;
+	while (i <= str.size())
+	{
+		if (str[i] == seperator || i == str.size())
+		{
+			endIndex = i;
+			std::string subStr = "";
+			subStr.append(str, startIndex, endIndex - startIndex);
+			result.first = subStr;
+			subStr = "";
+			subStr.append(str, endIndex - startIndex);
+			result.second = subStr;
+			return result;
+		}
+		i++;
+	}
+	result.first = str;
+	return result;
+}
+
 bool compareHosts(sf::TcpSocket& c, sf::TcpSocket& s) {
 	return (
 		c.getLocalPort() == c.getLocalPort() &&
@@ -25,6 +72,23 @@ bool networkClient::getConnecting() {
 }
 bool networkClient::isWorking() {
 	return isConnected;
+}
+int giveUpTreshold = 4;
+std::string networkClient::getLeaderboardData() {
+	sf::Packet outgoingMessage, incomingMessage;
+	outgoingMessage << "SCOREBOARD";
+	socket.send(outgoingMessage);
+	socket.receive(incomingMessage);
+	std::string data;
+	std::string procedure;
+	incomingMessage >> procedure >> data;
+	std::cout << procedure << " " << "SCOREBOARDD" <<  procedure.compare("SCOREBOARDD") << data << std::endl;
+	if (procedure.compare("SCOREBOARDD")) {
+		return data;
+	}
+	else {
+		return "NOTHING";
+	}
 }
 void networkClient::connect() {
 	isConnecting = true;
@@ -65,10 +129,10 @@ void networkClient::awaitStart(std::atomic<State>& s) {
 		}
 	}
 };
-void networkClient::join(std::atomic<State>& s) {
+void networkClient::join(std::atomic<State>& s, char* nickname) {
 	sf::Packet p;
 	std::string t = "JOIN";
-	p << t;
+	p << t << nickname;
 	socket.send(p);
 	waiterThread.reset(new std::thread([&]() { awaitStart(s); }));
 }
@@ -190,7 +254,12 @@ void Server2ndTry::handleJoin(sf::Packet& IncomingMessage, sf::TcpSocket& socket
 		}
 	}
 	if (!found) {
+		std::string nickname;
+		IncomingMessage >> nickname;
 		std::shared_ptr<NetworkPlayer> p = std::make_shared<NetworkPlayer>(socket);
+		if (nickname.size() != 0) {
+			p->setNickname(nickname);
+		}
 		p->setPlacesPath(false);
 		p->setLineMode(LineManager::LineModes::collision);
 		players.push_back(p);
@@ -203,6 +272,19 @@ void Server2ndTry::handleJoin(sf::Packet& IncomingMessage, sf::TcpSocket& socket
 	socket.send(outgoingMessage);
 }
 
+void Server2ndTry::handleScoreboard(sf::TcpSocket& socket) {
+	sf::Packet p;
+	std::cout << "SCOREBOARD" << std::endl;
+	std::string s = "SCOREBOARDD";
+	p << s;
+	p << getLeaderboardData();
+	socket.send(p);
+}
+
+bool compareScore(const playerScore& p1, const playerScore& p2) { 
+	return p1.second > p2.second; 
+};
+
 void Server2ndTry::parseRecieved(sf::Packet& incomingMessage, sf::TcpSocket& socket) {
 	std::string procedure;
 	incomingMessage >> procedure;
@@ -212,6 +294,8 @@ void Server2ndTry::parseRecieved(sf::Packet& incomingMessage, sf::TcpSocket& soc
 		handleUpdate(incomingMessage, socket);
 	if (procedure == "JOIN")
 		handleJoin(incomingMessage, socket);
+	if (procedure == "SCOREBOARD")
+		handleScoreboard(socket);
 }
 
 void Server2ndTry::acceptLoop() {

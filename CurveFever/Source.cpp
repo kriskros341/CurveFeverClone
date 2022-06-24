@@ -11,9 +11,6 @@
 #include <Player.h>
 #include <Window.h>
 #include <Network.h>
-#include "sources/Player.cpp"
-#include "sources/Window.cpp"
-#include "sources/Network.cpp"
 #define PI std::acos(0) * 2
 
 sf::Font font;
@@ -254,55 +251,6 @@ enum class networkFlags {
 void emptyFn() {};
 
 
-
-/*
-	<b>Clears</b> the vector and fills it with sliced string
-*/
-void splitTo(std::string str, const char seperator, std::vector<std::string>& cont)
-{
-	cont.clear();
-	int currIndex = 0, i = 0;
-	int startIndex = 0, endIndex = 0;
-	while (i <= str.size())
-	{
-		if (str[i] == seperator || i == str.size())
-		{
-			endIndex = i;
-			std::string subStr = "";
-			subStr.append(str, startIndex, endIndex - startIndex);
-			cont.push_back(subStr);
-			currIndex += 1;
-			startIndex = endIndex + 1;
-		}
-		i++;
-	}
-}
-
-
-std::pair<std::string, std::string> splitOnceBy(std::string str, const char seperator)
-{
-	int currIndex = 0, i = 0;
-	int startIndex = 0, endIndex = 0;
-	std::pair<std::string, std::string> result;
-	while (i <= str.size())
-	{
-		if (str[i] == seperator || i == str.size())
-		{
-			endIndex = i;
-			std::string subStr = "";
-			subStr.append(str, startIndex, endIndex - startIndex);
-			result.first = subStr;
-			subStr = "";
-			subStr.append(str, endIndex - startIndex);
-			result.second = subStr;
-			return result;
-		}
-		i++;
-	}
-	result.first = str;
-	return result;
-}
-
 std::mutex tempMut;
 
 void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
@@ -449,10 +397,13 @@ void multiplayer(MyRenderWindow& window, std::atomic<State>& s, networkClient& n
 	sendLoopThread.join();
 }
 void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClient& net) {
-	static char address[300]{};
+	static char address[255]{};
+	static char nickname[255]{};
 	ImGui::InputText("Ip Address", address, sizeof(address));
+	ImGui::InputText("Nickname", nickname, sizeof(nickname));
 	net.ip = sf::IpAddress(address);
 	static int connectionState = 0;
+	static std::vector<std::string> leaderboardData;
 	if (ImGui::Button("back")) {
 		s = State::menu;
 		net.disconnect();
@@ -470,8 +421,13 @@ void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClien
 	}
 	case 1: {
 		if (ImGui::Button("join")) {
-			net.join(s);
+			net.join(s, nickname);
+			std::string sc = net.getLeaderboardData(); 
+			splitTo(sc, ' ', leaderboardData);
+			std::cout << sc;
 			connectionState = 2;
+		}
+		if (ImGui::Button("test")) {
 		}
 		break;
 	}
@@ -485,6 +441,17 @@ void multiplayerMenu(MyRenderWindow& window, std::atomic<State>& s, networkClien
 		}
 	}
 	window.clear();
+
+	for (int i{}; i < leaderboardData.size(); i++) {
+		std::cout << leaderboardData[i] << std::endl;
+		sf::Text t;
+		t.setString(leaderboardData[i]);
+		t.setCharacterSize(40);
+		t.setFont(font);
+		t.setFillColor(sf::Color::White);
+		t.setPosition({ 200, (float)50*i+50 });
+		window.draw(t);
+	}
 	ImGui::SFML::Render(window);
 	window.display();
 }
@@ -527,6 +494,7 @@ void server2ndTry(MyRenderWindow& window, std::atomic<State>& gameState) {
 				gameState = State::menu;
 			}
 			if (ImGui::Button("start")) {
+				s->getLeaderboardData();
 				s->start();
 			}
 		}
